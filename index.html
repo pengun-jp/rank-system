@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>制作ランクシステム</title>
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #111;
+    color: white;
+}
+.container {
+    margin-top: 50px;
+}
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin: 5px;
+}
+.progress {
+    width: 80%;
+    height: 30px;
+    background: #333;
+    margin: 20px auto;
+    border-radius: 20px;
+}
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: gold;
+    border-radius: 20px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>制作ランクシステム</h1>
+
+<p>現在の累計時間: <span id="totalHours">0</span> h</p>
+<p>現在のランク: <span id="rank">ブロンズ I</span></p>
+<p>次のランクまで: <span id="nextRank">4</span> h</p>
+
+<button onclick="addTime()">+30分</button>
+<button onclick="resetData()">リセット</button>
+
+<div class="progress">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+
+</div>
+
+<script>
+
+let totalHours = 0;
+
+const ranks = [
+{ name: "ブロンズ I", hours: 0 },
+{ name: "ブロンズ II", hours: 4 },
+{ name: "ブロンズ III", hours: 11 },
+{ name: "シルバー I", hours: 20 },
+{ name: "シルバー II", hours: 29 },
+{ name: "シルバー III", hours: 43 },
+{ name: "ゴールド I", hours: 60 },
+{ name: "ゴールド II", hours: 78 },
+{ name: "ゴールド III", hours: 104 },
+{ name: "プラチナ I", hours: 140 },
+{ name: "プラチナ II", hours: 178 },
+{ name: "プラチナ III", hours: 232 },
+{ name: "ダイヤモンド I", hours: 300 },
+{ name: "ダイヤモンド II", hours: 372 },
+{ name: "ダイヤモンド III", hours: 476 },
+{ name: "カーボナド", hours: 620 },
+{ name: "パラゴン", hours: 1260 },
+{ name: "オムニス", hours: 2540 }
+];
+
+function addTime() {
+    totalHours += 0.5;
+    updateDisplay();
+}
+
+function resetData() {
+    totalHours = 0;
+    updateDisplay();
+}
+
+function updateDisplay() {
+    document.getElementById("totalHours").innerText = totalHours;
+
+    let currentRank = ranks[0];
+    let nextRank = ranks[1];
+
+    for (let i = 0; i < ranks.length; i++) {
+        if (totalHours >= ranks[i].hours) {
+            currentRank = ranks[i];
+            nextRank = ranks[i + 1];
+        }
+    }
+
+    document.getElementById("rank").innerText = currentRank.name;
+
+    if (nextRank) {
+        let remaining = (nextRank.hours - totalHours).toFixed(1);
+        document.getElementById("nextRank").innerText = remaining;
+        let progressPercent = ((totalHours - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
+        document.getElementById("progressBar").style.width = progressPercent + "%";
+    } else {
+        document.getElementById("nextRank").innerText = "達成済み";
+        document.getElementById("progressBar").style.width = "100%";
+    }
+}
+
+updateDisplay();
+
+</script>
+
+</body>
+</html>
