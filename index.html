@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>制作ランクシステム</title>
+<title>制作ランクシステム タイマー版</title>
 <style>
 body {
     font-family: Arial;
@@ -11,7 +11,7 @@ body {
     color: white;
 }
 .container {
-    margin-top: 50px;
+    margin-top: 30px;
 }
 button {
     padding: 10px 20px;
@@ -31,19 +31,27 @@ button {
     background: gold;
     border-radius: 20px;
 }
+#timer {
+    font-size: 40px;
+    margin-top: 20px;
+}
 </style>
 </head>
 <body>
 
 <div class="container">
-<h1>制作ランクシステム</h1>
+<h1>制作ランクシステム タイマー版</h1>
 
-<p>現在の累計時間: <span id="totalHours">0</span> h</p>
+<p>累計時間: <span id="totalHours">0</span> h</p>
 <p>現在のランク: <span id="rank">ブロンズ I</span></p>
 <p>次のランクまで: <span id="nextRank">4</span> h</p>
 
+<div id="timer">00:00:00</div>
+
 <button onclick="addTime()">+30分</button>
-<button onclick="resetData()">リセット</button>
+<button onclick="startTimer()">スタート/一時停止</button>
+<button onclick="resetTimer()">タイマーリセット</button>
+<button onclick="resetData()">累計リセット</button>
 
 <div class="progress">
 <div class="progress-bar" id="progressBar"></div>
@@ -52,9 +60,7 @@ button {
 </div>
 
 <script>
-
-let totalHours = 0;
-
+// ランク設定
 const ranks = [
 { name: "ブロンズ I", hours: 0 },
 { name: "ブロンズ II", hours: 4 },
@@ -76,18 +82,80 @@ const ranks = [
 { name: "オムニス", hours: 2540 }
 ];
 
+// 保存済みデータ読み込み
+let totalHours = parseFloat(localStorage.getItem("totalHours")) || 0;
+let timerSeconds = parseInt(localStorage.getItem("timerSeconds")) || 0;
+let timerRunning = false;
+let interval = null;
+
+// 時間加算
 function addTime() {
-    totalHours += 0.5;
-    updateDisplay();
+    timerSeconds += 30 * 60;
+    updateTimerDisplay();
+    saveTimer();
 }
 
+// タイマー操作
+function startTimer() {
+    if (timerRunning) {
+        clearInterval(interval);
+        timerRunning = false;
+    } else {
+        timerRunning = true;
+        interval = setInterval(() => {
+            if (timerSeconds > 0) {
+                timerSeconds--;
+                updateTimerDisplay();
+                saveTimer();
+            } else {
+                clearInterval(interval);
+                timerRunning = false;
+                // タイマー終了時に累計に加算
+                totalHours += 0.5; // 30分刻み
+                saveData();
+                updateDisplay();
+                alert("タイマー終了！累計時間に0.5h加算されました");
+            }
+        }, 1000);
+    }
+}
+
+// タイマーリセット
+function resetTimer() {
+    clearInterval(interval);
+    timerRunning = false;
+    timerSeconds = 0;
+    updateTimerDisplay();
+    saveTimer();
+}
+
+// 累計リセット
 function resetData() {
     totalHours = 0;
+    saveData();
     updateDisplay();
 }
 
+// localStorage保存
+function saveData() {
+    localStorage.setItem("totalHours", totalHours);
+}
+function saveTimer() {
+    localStorage.setItem("timerSeconds", timerSeconds);
+}
+
+// タイマー表示更新
+function updateTimerDisplay() {
+    let h = Math.floor(timerSeconds / 3600);
+    let m = Math.floor((timerSeconds % 3600) / 60);
+    let s = timerSeconds % 60;
+    document.getElementById("timer").innerText =
+        (h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+}
+
+// ランクとゲージ更新
 function updateDisplay() {
-    document.getElementById("totalHours").innerText = totalHours;
+    document.getElementById("totalHours").innerText = totalHours.toFixed(1);
 
     let currentRank = ranks[0];
     let nextRank = ranks[1];
@@ -104,7 +172,10 @@ function updateDisplay() {
     if (nextRank) {
         let remaining = (nextRank.hours - totalHours).toFixed(1);
         document.getElementById("nextRank").innerText = remaining;
-        let progressPercent = ((totalHours - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
+
+        let progressPercent = ((totalHours - currentRank.hours) /
+        (nextRank.hours - currentRank.hours)) * 100;
+
         document.getElementById("progressBar").style.width = progressPercent + "%";
     } else {
         document.getElementById("nextRank").innerText = "達成済み";
@@ -112,9 +183,10 @@ function updateDisplay() {
     }
 }
 
+// 初期表示
+updateTimerDisplay();
 updateDisplay();
 
 </script>
-
 </body>
 </html>
