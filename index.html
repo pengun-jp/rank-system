@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>制作ランクシステム タイマー版</title>
+<title>制作ランクシステム タイマー＋カレンダー</title>
 <style>
 body {
     font-family: Arial;
@@ -11,18 +11,18 @@ body {
     color: white;
 }
 .container {
-    margin-top: 30px;
+    margin-top: 20px;
 }
 button {
-    padding: 10px 20px;
+    padding: 8px 18px;
     font-size: 16px;
     margin: 5px;
 }
 .progress {
     width: 80%;
-    height: 30px;
+    height: 25px;
     background: #333;
-    margin: 20px auto;
+    margin: 15px auto;
     border-radius: 20px;
 }
 .progress-bar {
@@ -32,15 +32,37 @@ button {
     border-radius: 20px;
 }
 #timer {
-    font-size: 40px;
+    font-size: 35px;
+    margin-top: 15px;
+}
+#calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 40px);
+    grid-gap: 5px;
+    justify-content: center;
     margin-top: 20px;
+}
+.day {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 5px;
+    background: #333;
+    cursor: pointer;
+}
+.day.active {
+    background: #28a745;
+}
+#monthTotal {
+    margin-top: 10px;
+    font-size: 18px;
 }
 </style>
 </head>
 <body>
 
 <div class="container">
-<h1>制作ランクシステム タイマー版</h1>
+<h1>制作ランクシステム</h1>
 
 <p>累計時間: <span id="totalHours">0</span> h</p>
 <p>現在のランク: <span id="rank">ブロンズ I</span></p>
@@ -57,10 +79,12 @@ button {
 <div class="progress-bar" id="progressBar"></div>
 </div>
 
+<div id="monthTotal">今月合計: 0 h</div>
+<div id="calendar"></div>
 </div>
 
 <script>
-// ランク設定
+// --- ランク設定 ---
 const ranks = [
 { name: "ブロンズ I", hours: 0 },
 { name: "ブロンズ II", hours: 4 },
@@ -82,20 +106,26 @@ const ranks = [
 { name: "オムニス", hours: 2540 }
 ];
 
-// 保存済みデータ読み込み
+// --- 保存データ読み込み ---
 let totalHours = parseFloat(localStorage.getItem("totalHours")) || 0;
 let timerSeconds = parseInt(localStorage.getItem("timerSeconds")) || 0;
+let dailyData = JSON.parse(localStorage.getItem("dailyData")) || {};
 let timerRunning = false;
 let interval = null;
 
-// 時間加算
+// --- 日付取得 ---
+function getTodayKey() {
+    const today = new Date();
+    return today.getFullYear() + "-" + (today.getMonth()+1) + "-" + today.getDate();
+}
+
+// --- タイマー操作 ---
 function addTime() {
     timerSeconds += 30 * 60;
     updateTimerDisplay();
     saveTimer();
 }
 
-// タイマー操作
 function startTimer() {
     if (timerRunning) {
         clearInterval(interval);
@@ -110,17 +140,19 @@ function startTimer() {
             } else {
                 clearInterval(interval);
                 timerRunning = false;
-                // タイマー終了時に累計に加算
-                totalHours += 0.5; // 30分刻み
+                // タイマー終了時に累計＆日別に反映
+                totalHours += 0.5;
                 saveData();
+                const key = getTodayKey();
+                dailyData[key] = (dailyData[key] || 0) + 0.5;
+                saveDailyData();
                 updateDisplay();
-                alert("タイマー終了！累計時間に0.5h加算されました");
+                alert("タイマー終了！累計に0.5h加算されました");
             }
         }, 1000);
     }
 }
 
-// タイマーリセット
 function resetTimer() {
     clearInterval(interval);
     timerRunning = false;
@@ -129,22 +161,26 @@ function resetTimer() {
     saveTimer();
 }
 
-// 累計リセット
 function resetData() {
     totalHours = 0;
+    dailyData = {};
     saveData();
+    saveDailyData();
     updateDisplay();
 }
 
-// localStorage保存
+// --- localStorage保存 ---
 function saveData() {
     localStorage.setItem("totalHours", totalHours);
 }
 function saveTimer() {
     localStorage.setItem("timerSeconds", timerSeconds);
 }
+function saveDailyData() {
+    localStorage.setItem("dailyData", JSON.stringify(dailyData));
+}
 
-// タイマー表示更新
+// --- タイマー表示 ---
 function updateTimerDisplay() {
     let h = Math.floor(timerSeconds / 3600);
     let m = Math.floor((timerSeconds % 3600) / 60);
@@ -153,13 +189,12 @@ function updateTimerDisplay() {
         (h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
 }
 
-// ランクとゲージ更新
+// --- ランクとゲージ更新 ---
 function updateDisplay() {
     document.getElementById("totalHours").innerText = totalHours.toFixed(1);
 
     let currentRank = ranks[0];
     let nextRank = ranks[1];
-
     for (let i = 0; i < ranks.length; i++) {
         if (totalHours >= ranks[i].hours) {
             currentRank = ranks[i];
@@ -175,18 +210,67 @@ function updateDisplay() {
 
         let progressPercent = ((totalHours - currentRank.hours) /
         (nextRank.hours - currentRank.hours)) * 100;
-
         document.getElementById("progressBar").style.width = progressPercent + "%";
     } else {
         document.getElementById("nextRank").innerText = "達成済み";
         document.getElementById("progressBar").style.width = "100%";
     }
+
+    updateCalendar();
 }
 
-// 初期表示
+// --- カレンダー生成 ---
+function generateCalendar() {
+    const calendar = document.getElementById("calendar");
+    calendar.innerHTML = "";
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month+1, 0).getDate();
+
+    // 空白埋め
+    for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement("div");
+        calendar.appendChild(empty);
+    }
+
+    // 日付生成
+    for (let d = 1; d <= lastDate; d++) {
+        const dayDiv = document.createElement("div");
+        dayDiv.className = "day";
+        dayDiv.innerText = d;
+
+        const key = year + "-" + (month+1) + "-" + d;
+        if (dailyData[key] && dailyData[key] > 0) {
+            dayDiv.classList.add("active");
+        }
+
+        dayDiv.onclick = () => {
+            const hours = dailyData[key] ? dailyData[key].toFixed(1) : 0;
+            alert(`${key} の勉強時間: ${hours} h`);
+        }
+
+        calendar.appendChild(dayDiv);
+    }
+}
+
+// --- カレンダー更新と月合計 ---
+function updateCalendar() {
+    generateCalendar();
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth()+1;
+
+    let monthSum = 0;
+    for (const key in dailyData) {
+        if (key.startsWith(year+"-"+month)) {
+            monthSum += dailyData[key];
+        }
+    }
+    document.getElementById("monthTotal").innerText = `今月合計: ${monthSum.toFixed(1)} h`;
+}
+
+// --- 初期表示 ---
 updateTimerDisplay();
 updateDisplay();
-
-</script>
-</body>
-</html>
