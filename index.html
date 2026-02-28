@@ -79,39 +79,71 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 </div>
 
 <script>
-
 const ranks = [
 { name:"ブロンズ I", hours:0, color:"#ff9900", stroke:"#cc6600" },
 { name:"ブロンズ II", hours:4, color:"#ff9900", stroke:"#cc6600" },
 { name:"ブロンズ III", hours:11, color:"#ff9900", stroke:"#cc6600" },
-
 { name:"シルバー I", hours:20, color:"#c0c0c0", stroke:"#808080" },
 { name:"シルバー II", hours:29, color:"#c0c0c0", stroke:"#808080" },
 { name:"シルバー III", hours:43, color:"#c0c0c0", stroke:"#808080" },
-
 { name:"ゴールド I", hours:60, color:"#ffd700", stroke:"#ccaa00" },
 { name:"ゴールド II", hours:78, color:"#ffd700", stroke:"#ccaa00" },
 { name:"ゴールド III", hours:104, color:"#ffd700", stroke:"#ccaa00" },
-
 { name:"プラチナ I", hours:140, color:"#d0e0e3", stroke:"#9fb8bd" },
 { name:"プラチナ II", hours:178, color:"#d0e0e3", stroke:"#9fb8bd" },
 { name:"プラチナ III", hours:232, color:"#d0e0e3", stroke:"#9fb8bd" },
-
 { name:"ダイヤモンド I", hours:300, color:"#00ffff", stroke:"#009999" },
 { name:"ダイヤモンド II", hours:372, color:"#00ffff", stroke:"#009999" },
 { name:"ダイヤモンド III", hours:476, color:"#00ffff", stroke:"#009999" },
-
 { name:"カーボナド", hours:620, color:"#8b0000", stroke:"#550000" },
 { name:"パラゴン", hours:1260, color:"#4b0082", stroke:"#2e004d" },
 { name:"オムニス", hours:2540, color:"#00ff99", stroke:"#009966" }
 ];
 
 let totalHours = 0;
+let timerInterval = null;
+let seconds = 0;
+let currentDate = new Date();
 
-function addTestHours(){
-    totalHours += 10;
+// ================== タイマー ==================
+
+function startTimer(){
+    if(timerInterval){
+        clearInterval(timerInterval);
+        timerInterval=null;
+    } else {
+        timerInterval=setInterval(()=>{
+            seconds++;
+            document.getElementById("timer").innerText=formatTime(seconds);
+        },1000);
+    }
+}
+
+function resetTimer(){
+    clearInterval(timerInterval);
+    timerInterval=null;
+    seconds=0;
+    document.getElementById("timer").innerText="00:00:00";
+}
+
+function addTime(){
+    totalHours+=0.5;
     updateDisplay();
 }
+
+function resetData(){
+    totalHours=0;
+    updateDisplay();
+}
+
+function formatTime(s){
+    const h=String(Math.floor(s/3600)).padStart(2,"0");
+    const m=String(Math.floor((s%3600)/60)).padStart(2,"0");
+    const sec=String(s%60).padStart(2,"0");
+    return `${h}:${m}:${sec}`;
+}
+
+// ================== ランク ==================
 
 function updateDisplay(){
 
@@ -138,10 +170,41 @@ function updateDisplay(){
     }
 }
 
-updateDisplay();
+// ================== カレンダー ==================
 
-<script>
-（JS全部）
+function changeMonth(offset){
+    currentDate.setMonth(currentDate.getMonth()+offset);
+    renderCalendar();
+}
+
+function renderCalendar(){
+
+    const year=currentDate.getFullYear();
+    const month=currentDate.getMonth();
+
+    document.getElementById("monthLabel").innerText=`${year}年${month+1}月`;
+
+    const calendar=document.getElementById("calendar");
+    calendar.innerHTML="";
+
+    const firstDay=new Date(year,month,1).getDay();
+    const daysInMonth=new Date(year,month+1,0).getDate();
+
+    for(let i=0;i<firstDay;i++){
+        calendar.innerHTML+="<div></div>";
+    }
+
+    for(let d=1;d<=daysInMonth;d++){
+        const day=document.createElement("div");
+        day.className="day";
+        day.innerText=d;
+        calendar.appendChild(day);
+    }
+}
+
+renderCalendar();
+updateDisplay();
+    
 </script>
 </body>
 </html>
