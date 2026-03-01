@@ -237,7 +237,108 @@ renderCalendar();
    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
    console.log("接続成功:", supabase);
- </script>
+     
+     let secondsCounter = 0;
+let totalSeconds = 0;
+let weeklySeconds = 0;
+let monthlySeconds = 0;
+const userName = "あなたの名前"; // ログインユーザーに置き換え
 
+function tickTimer() {
+    totalSeconds++;
+    weeklySeconds++;
+    monthlySeconds++;
+
+    document.getElementById("timer").innerText = formatTime(totalSeconds);
+
+    secondsCounter++;
+    if (secondsCounter >= 60) {
+        secondsCounter = 0;
+
+        let record = {
+            username: userName,
+            total_minutes: Math.floor(totalSeconds / 60),
+            weekly_minutes: Math.floor(weeklySeconds / 60),
+            monthly_minutes: Math.floor(monthlySeconds / 60),
+            created_at: new Date().toISOString()
+        };
+
+        record = resetIfNeeded(record);
+
+        supabase.from("records").upsert(record).then(() => {
+            updateRanking();
+        });
+    }
+}
+
+async function updateRanking() {
+    const totalRank = await fetchRanking("total_minutes");
+    const weekRank = await fetchRanking("weekly_minutes");
+    const monthRank = await fetchRanking("monthly_minutes");
+
+    renderRanking("totalRank", totalRank, "total_minutes");
+    renderRanking("weekRank", weekRank, "weekly_minutes");
+    renderRanking("monthRank", monthRank, "monthly_minutes");
+}
+
+async function fetchRanking(column) {
+    const { data } = await supabase
+        .from("records")
+        .select("*")
+        .order(column, { ascending: false })
+        .limit(100); // 上位100人
+    return data || [];
+}
+
+function renderRanking(elementId, data, column) {
+    const div = document.getElementById(elementId);
+    div.innerHTML = "";
+    data.forEach((user, index) => {
+        let medal = "";
+        if(index === 0) medal = "🥇 ";
+        else if(index === 1) medal = "🥈 ";
+        else if(index === 2) medal = "🥉 ";
+        div.innerHTML += `<p>${medal}${index+1}位 ${user.username} - ${user[column]}分</p>`;
+    });
+}
+
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2,'0');
+    const s = (seconds % 60).toString().padStart(2,'0');
+    return `${h}:${m}:${s}`;
+}
+
+function startLiveTimer() {
+    setInterval(tickTimer, 1000);
+}
+
+function resetIfNeeded(record) {
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - now.getDay() + 1);
+    monday.setHours(0,0,0,0);
+
+    const lastWeek = new Date(record.created_at);
+    lastWeek.setHours(0,0,0,0);
+    if(lastWeek < monday) record.weekly_minutes = 0;
+
+    const currentMonth = now.getMonth();
+    const lastMonth = new Date(record.created_at).getMonth();
+    if(currentMonth !== lastMonth) record.monthly_minutes = 0;
+
+    return record;
+}
+ </script>
+<div>
+  <h2>総合ランキング</h2>
+  <div id="totalRank"></div>
+
+  <h2>今週ランキング</h2>
+  <div id="weekRank"></div>
+
+  <h2>今月ランキング</h2>
+  <div id="monthRank"></div>
+</div>
 </body>
 </html>
