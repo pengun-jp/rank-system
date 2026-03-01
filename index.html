@@ -102,48 +102,68 @@ const ranks = [
 
 let totalHours = 0;
 let timerInterval = null;
-let seconds = 0;
-let currentDate = new Date();
+let remainingSeconds = 0;
 
 // ================== タイマー ==================
 
+function addTime(){
+    remainingSeconds += 1800; // 30分追加
+    updateTimerDisplay();
+}
+
 function startTimer(){
+
     if(timerInterval){
         clearInterval(timerInterval);
-        timerInterval=null;
-    } else {
-        timerInterval=setInterval(()=>{
-            seconds++;
-            document.getElementById("timer").innerText=formatTime(seconds);
-        },1000);
+        timerInterval = null;
+        return;
     }
+
+    if(remainingSeconds <= 0) return;
+
+    timerInterval = setInterval(() => {
+
+        remainingSeconds--;
+        updateTimerDisplay();
+
+        if(remainingSeconds <= 0){
+            clearInterval(timerInterval);
+            timerInterval = null;
+
+            totalHours += 0.5; // 30分完了
+            updateDisplay();
+        }
+
+    },1000);
 }
 
 function resetTimer(){
     clearInterval(timerInterval);
-    timerInterval=null;
-    seconds=0;
-    document.getElementById("timer").innerText="00:00:00";
+    timerInterval = null;
+    remainingSeconds = 0;
+    updateTimerDisplay();
 }
 
-function addTime(){
-    totalHours+=0.5;
+function updateTimerDisplay(){
+    const h = String(Math.floor(remainingSeconds/3600)).padStart(2,"0");
+    const m = String(Math.floor((remainingSeconds%3600)/60)).padStart(2,"0");
+    const s = String(remainingSeconds%60).padStart(2,"0");
+    document.getElementById("timer").innerText = `${h}:${m}:${s}`;
+}
+
+// ================== 累計系 ==================
+
+function addTestHours(){
+    totalHours += 10;
     updateDisplay();
 }
 
 function resetData(){
-    totalHours=0;
+    totalHours = 0;
     updateDisplay();
 }
 
-function formatTime(s){
-    const h=String(Math.floor(s/3600)).padStart(2,"0");
-    const m=String(Math.floor((s%3600)/60)).padStart(2,"0");
-    const sec=String(s%60).padStart(2,"0");
-    return `${h}:${m}:${sec}`;
-}
-
-// ================== ランク ==================
+// ================== ランク表示 ==================
 
 function updateDisplay(){
 
@@ -171,6 +191,8 @@ function updateDisplay(){
 }
 
 // ================== カレンダー ==================
+
+let currentDate = new Date();
 
 function changeMonth(offset){
     currentDate.setMonth(currentDate.getMonth()+offset);
@@ -202,8 +224,9 @@ function renderCalendar(){
     }
 }
 
-renderCalendar();
+updateTimerDisplay();
 updateDisplay();
+renderCalendar();
     
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
