@@ -1,3 +1,4 @@
+<!-- 省略せずフルで動く版 -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -75,20 +76,9 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 <div id="monthTotal">今月合計: 0 h</div>
 <div id="calendar"></div>
 
-<h2>総合ランキング</h2>
-<div id="totalRank"></div>
-<h2>今週ランキング</h2>
-<div id="weekRank"></div>
-<h2>今月ランキング</h2>
-<div id="monthRank"></div>
-
 </div>
 
-<!-- Supabase SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-// ================== ランク設定 ==================
 const ranks = [
 { name:"ブロンズ I", hours:0, color:"#ff9900", stroke:"#cc6600" },
 { name:"ブロンズ II", hours:4, color:"#ff9900", stroke:"#cc6600" },
@@ -115,61 +105,117 @@ let timerInterval = null;
 let remainingSeconds = 0;
 
 // ================== タイマー ==================
-function addTime(){ remainingSeconds += 1800; updateTimerDisplay(); }
+
+function addTime(){
+    remainingSeconds += 1800; // 30分追加
+    updateTimerDisplay();
+}
 
 function startTimer(){
-    if(timerInterval){ clearInterval(timerInterval); timerInterval=null; return; }
-    if(remainingSeconds<=0) return;
-    timerInterval = setInterval(()=>{
+
+    if(timerInterval){
+        clearInterval(timerInterval);
+        timerInterval = null;
+        return;
+    }
+
+    if(remainingSeconds <= 0) return;
+
+    timerInterval = setInterval(() => {
+
         remainingSeconds--;
         updateTimerDisplay();
-        if(remainingSeconds<=0){
+
+        if(remainingSeconds <= 0){
             clearInterval(timerInterval);
-            timerInterval=null;
-            totalHours += 0.5;
+            timerInterval = null;
+
+            totalHours += 0.5; // 30分完了
             updateDisplay();
         }
+
     },1000);
 }
 
-function resetTimer(){ clearInterval(timerInterval); timerInterval=null; remainingSeconds=0; updateTimerDisplay(); }
+function resetTimer(){
+    clearInterval(timerInterval);
+    timerInterval = null;
+    remainingSeconds = 0;
+    updateTimerDisplay();
+}
 
 function updateTimerDisplay(){
-    const h=String(Math.floor(remainingSeconds/3600)).padStart(2,"0");
-    const m=String(Math.floor((remainingSeconds%3600)/60)).padStart(2,"0");
-    const s=String(remainingSeconds%60).padStart(2,"0");
-    document.getElementById("timer").innerText=`${h}:${m}:${s}`;
+    const h = String(Math.floor(remainingSeconds/3600)).padStart(2,"0");
+    const m = String(Math.floor((remainingSeconds%3600)/60)).padStart(2,"0");
+    const s = String(remainingSeconds%60).padStart(2,"0");
+    document.getElementById("timer").innerText = `${h}:${m}:${s}`;
 }
 
 // ================== 累計系 ==================
-function addTestHours(){ totalHours+=10; updateDisplay(); }
-function resetData(){ totalHours=0; updateDisplay(); }
+
+function addTestHours(){
+    totalHours += 10;
+    updateDisplay();
+}
+
+function resetData(){
+    totalHours = 0;
+    updateDisplay();
+}
 
 // ================== ランク表示 ==================
+
 function updateDisplay(){
-    document.getElementById("totalHours").innerText=totalHours.toFixed(1);
+
+    document.getElementById("totalHours").innerText = totalHours.toFixed(1);
+
     let currentRank=ranks[0], nextRank=null;
-    for(let i=0;i<ranks.length;i++){ if(totalHours>=ranks[i].hours){ currentRank=ranks[i]; nextRank=ranks[i+1]; } }
+
+    for(let i=0;i<ranks.length;i++){
+        if(totalHours>=ranks[i].hours){
+            currentRank=ranks[i];
+            nextRank=ranks[i+1];
+        }
+    }
+
     const rankEl=document.getElementById("rank");
     rankEl.innerText=currentRank.name;
     rankEl.style.color=currentRank.color;
     rankEl.style.webkitTextStroke="0.6px "+currentRank.stroke;
-    if(nextRank){ document.getElementById("nextRank").innerText=(nextRank.hours-totalHours).toFixed(1); } 
-    else{ document.getElementById("nextRank").innerText="達成済み"; }
+
+    if(nextRank){
+        document.getElementById("nextRank").innerText=(nextRank.hours-totalHours).toFixed(1);
+    } else {
+        document.getElementById("nextRank").innerText="達成済み";
+    }
 }
 
 // ================== カレンダー ==================
+
 let currentDate = new Date();
-function changeMonth(offset){ currentDate.setMonth(currentDate.getMonth()+offset); renderCalendar(); }
+
+function changeMonth(offset){
+    currentDate.setMonth(currentDate.getMonth()+offset);
+    renderCalendar();
+}
+
 function renderCalendar(){
+
     const year=currentDate.getFullYear();
     const month=currentDate.getMonth();
+
     document.getElementById("monthLabel").innerText=`${year}年${month+1}月`;
+
     const calendar=document.getElementById("calendar");
     calendar.innerHTML="";
+
     const firstDay=new Date(year,month,1).getDay();
     const daysInMonth=new Date(year,month+1,0).getDate();
-    for(let i=0;i<firstDay;i++){ calendar.innerHTML+="<div></div>"; }
+
+    for(let i=0;i<firstDay;i++){
+        calendar.innerHTML+="<div></div>";
+    }
+
     for(let d=1;d<=daysInMonth;d++){
         const day=document.createElement("div");
         day.className="day";
@@ -178,9 +224,18 @@ function renderCalendar(){
     }
 }
 
-// ================== Supabase ==================
-const supabaseUrl = "https://vfgfunxzthogghymrnnq.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZ2Z1bnh6dGhvZ2doeW1ybm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMTQzMDQsImV4cCI6MjA4Nzg5MDMwNH0.HA0wze4yqkq1XebULhpyDUqQkgRe4xIoHUBTB65bM-o";
+updateTimerDisplay();
+updateDisplay();
+renderCalendar();
+    
+ </script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- 既存の supabase 宣言・ランキング系を丸ごと置き換え -->
+<script>
+const supabaseUrl = "あなたのURL";
+const supabaseKey = "あなたの公開キー";
+
+// ← ここが重複して宣言されていた場合、古いのを消して置き換える
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 console.log("Supabase接続成功:", supabase);
 
@@ -195,68 +250,85 @@ function tickTimer(){
     liveWeeklySeconds++;
     liveMonthlySeconds++;
     liveCounter++;
-    if(liveCounter>=60){ // 1分刻みで更新
-        liveCounter=0;
+    if(liveCounter >= 60){ // 1分刻みでアップデート
+        liveCounter = 0;
         let record = {
-            username:userName,
-            total_minutes:Math.floor(liveTotalSeconds/60),
-            weekly_minutes:Math.floor(liveWeeklySeconds/60),
-            monthly_minutes:Math.floor(liveMonthlySeconds/60),
+            username: userName,
+            total_minutes: Math.floor(liveTotalSeconds / 60),
+            weekly_minutes: Math.floor(liveWeeklySeconds / 60),
+            monthly_minutes: Math.floor(liveMonthlySeconds / 60),
             created_at: new Date().toISOString()
         };
-        record=resetIfNeeded(record);
-        supabase.from("records").upsert(record).then(()=>updateRanking()).catch(err=>console.error("upsert error:",err));
+        record = resetIfNeeded(record);
+        supabase.from("records")
+            .upsert(record)
+            .then(() => updateRanking())
+            .catch(err => console.error("upsert error:", err));
     }
 }
 
-function startLiveTimer(){ setInterval(tickTimer,1000); }
+function startLiveTimer(){ setInterval(tickTimer, 1000); }
 
 function resetIfNeeded(record){
-    const now=new Date();
-    const monday=new Date(now);
-    monday.setDate(now.getDate()-now.getDay()+1);
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - now.getDay() + 1);
     monday.setHours(0,0,0,0);
-    const lastWeek=new Date(record.created_at); lastWeek.setHours(0,0,0,0);
-    if(lastWeek<monday) record.weekly_minutes=0;
-    const currentMonth=now.getMonth();
-    const lastMonth=new Date(record.created_at).getMonth();
-    if(currentMonth!==lastMonth) record.monthly_minutes=0;
+
+    const lastWeek = new Date(record.created_at);
+    lastWeek.setHours(0,0,0,0);
+    if(lastWeek < monday) record.weekly_minutes = 0;
+
+    const currentMonth = now.getMonth();
+    const lastMonth = new Date(record.created_at).getMonth();
+    if(currentMonth !== lastMonth) record.monthly_minutes = 0;
+
     return record;
 }
 
-// ================== ランキング ==================
 async function updateRanking(){
-    const totalRank=await fetchRanking("total_minutes");
-    const weekRank=await fetchRanking("weekly_minutes");
-    const monthRank=await fetchRanking("monthly_minutes");
-    renderRanking("totalRank",totalRank,"total_minutes");
-    renderRanking("weekRank",weekRank,"weekly_minutes");
-    renderRanking("monthRank",monthRank,"monthly_minutes");
+    const totalRank = await fetchRanking("total_minutes");
+    const weekRank = await fetchRanking("weekly_minutes");
+    const monthRank = await fetchRanking("monthly_minutes");
+
+    renderRanking("totalRank", totalRank, "total_minutes");
+    renderRanking("weekRank", weekRank, "weekly_minutes");
+    renderRanking("monthRank", monthRank, "monthly_minutes");
 }
 
 async function fetchRanking(column){
-    const { data } = await supabase.from("records").select("*").order(column,{ascending:false}).limit(100);
-    return data||[];
+    const { data } = await supabase
+        .from("records")
+        .select("*")
+        .order(column, { ascending: false })
+        .limit(100);
+    return data || [];
 }
 
-function renderRanking(elementId,data,column){
-    const div=document.getElementById(elementId);
-    div.innerHTML="";
-    data.forEach((user,index)=>{
-        let medal="";
-        if(index===0) medal="🥇 ";
-        else if(index===1) medal="🥈 ";
-        else if(index===2) medal="🥉 ";
-        div.innerHTML+=`<p>${medal}${index+1}位 ${user.username} - ${user[column]}分</p>`;
+function renderRanking(elementId, data, column){
+    const div = document.getElementById(elementId);
+    div.innerHTML = "";
+    data.forEach((user, index) => {
+        let medal = "";
+        if(index === 0) medal = "🥇 ";
+        else if(index === 1) medal = "🥈 ";
+        else if(index === 2) medal = "🥉 ";
+        div.innerHTML += `<p>${medal}${index+1}位 ${user.username} - ${user[column]}分</p>`;
     });
 }
 
-// ================== 初期化 ==================
-updateTimerDisplay();
-updateDisplay();
-renderCalendar();
+// 起動時に呼ぶ
 startLiveTimer();
-
 </script>
+<div>
+  <h2>総合ランキング</h2>
+  <div id="totalRank"></div>
+
+  <h2>今週ランキング</h2>
+  <div id="weekRank"></div>
+
+  <h2>今月ランキング</h2>
+  <div id="monthRank"></div>
+</div>
 </body>
 </html>
