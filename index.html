@@ -188,7 +188,7 @@ function tickTimer(){
             created_at:new Date().toISOString()
         };
         record = resetIfNeeded(record);
-        supabaseClient.from("records").upsert(record).then(()=>updateRanking()).catch(err=>console.error("upsert error:",err));
+        supabaseClient.from("record").upsert(record).then(()=>updateRanking()).catch(err=>console.error("upsert error:",err));
     }
 }
 function startLiveTimer(){ setInterval(tickTimer,1000); }
@@ -211,7 +211,7 @@ async function updateRanking(){
     renderRanking("monthRank",monthRank,"monthly_minutes");
 }
 async function fetchRanking(column){
-    const { data } = await supabaseClient.from("records").select("*").order(column,{ascending:false}).limit(100);
+    const { data } = await supabaseClient.from("record").select("*").order(column,{ascending:false}).limit(100);
     return data||[];
 }
 function renderRanking(elementId,data,column){
