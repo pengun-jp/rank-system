@@ -232,8 +232,8 @@ renderCalendar();
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- 既存の supabase 宣言・ランキング系を丸ごと置き換え -->
 <script>
-const supabaseUrl = "あなたのURL";
-const supabaseKey = "あなたの公開キー";
+const supabaseUrl = "https://vfgfunxzthogghymrnnq.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZ2Z1bnh6dGhvZ2doeW1ybm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMTQzMDQsImV4cCI6MjA4Nzg5MDMwNH0.HA0wze4yqkq1XebULhpyDUqQkgRe4xIoHUBTB65bM-o";
 
 // ← ここが重複して宣言されていた場合、古いのを消して置き換える
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
