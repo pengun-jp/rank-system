@@ -206,5 +206,14 @@ renderCalendar();
 updateDisplay();
     
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseUrl = "https://vfgfunxzthogghymrnnq.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZ2Z1bnh6dGhvZ2doeW1ybm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMTQzMDQsImV4cCI6MjA4Nzg5MDMwNH0.HA0wze4yqkq1XebULhpyDUqQkgRe4xIoHUBTB65bM-o";
+
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  console.log("接続成功:", supabase);
+</script>
 </body>
 </html>
