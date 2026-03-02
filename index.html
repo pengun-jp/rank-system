@@ -176,19 +176,32 @@ console.log("Supabase接続成功:", supabaseClient);
 let liveTotalSeconds=0, liveWeeklySeconds=0, liveMonthlySeconds=0, liveCounter=0;
 const userName="testuser";
 
-function tickTimer(){
-    liveTotalSeconds++; liveWeeklySeconds++; liveMonthlySeconds++; liveCounter++;
+async function tickTimer(){
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if(!user) return; // ログインしてないなら保存しない
+
+    liveTotalSeconds++;
+    liveWeeklySeconds++;
+    liveMonthlySeconds++;
+    liveCounter++;
+
     if(liveCounter>=60){
         liveCounter=0;
+
         let record={
-            username:userName,
+            user_id:user.id,
+            username:user.email,
             total_minutes:Math.floor(liveTotalSeconds/60),
             weekly_minutes:Math.floor(liveWeeklySeconds/60),
-            monthly_minutes:Math.floor(liveMonthlySeconds/60),
-            created_at:new Date().toISOString()
+            monthly_minutes:Math.floor(liveMonthlySeconds/60)
         };
-        record = resetIfNeeded(record);
-        supabaseClient.from("record").upsert(record).then(()=>updateRanking()).catch(err=>console.error("upsert error:",err));
+
+        await supabaseClient
+            .from("record")
+            .upsert(record,{ onConflict:"user_id" });
+
+        updateRanking();
     }
 }
 function startLiveTimer(){ setInterval(tickTimer,1000); }
