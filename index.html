@@ -84,6 +84,41 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
   color:white;
   border:none;
 }
+.button-row{
+  position: relative;
+  margin: 30px 0;
+}
+
+.center-buttons{
+  text-align: center;
+}
+
+.center-buttons button{
+  margin: 0 10px;
+}
+
+.right-buttons{
+  position: absolute;
+  right: 5%;
+  top: 40px;   /* 少し下にずらしてリセット用 */
+  display: flex;
+  gap: 10px;
+}
+
+.test-button{
+  position: absolute;
+  right: 5%;
+  top: 0;
+  background: #6c757d;
+  color: white;
+  border: none;
+}
+
+.danger{
+  background:#dc3545;
+  color:white;
+  border:none;
+}
 </style>
 </head>
 
@@ -115,16 +150,20 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 
 <div class="button-row">
 
-  <div class="left-buttons">
+  <div class="center-buttons">
     <button onclick="addTime()">+30分</button>
     <button onclick="startTimer()">スタート/一時停止</button>
-    <button onclick="addTestHours()">+10時間（テスト）</button>
   </div>
 
   <div class="right-buttons">
     <button class="danger" onclick="confirmResetTimer()">タイマーリセット</button>
     <button class="danger" onclick="confirmResetData()">累計リセット</button>
   </div>
+
+  <!-- 右上テストボタン -->
+  <button class="test-button" onclick="addTestHours()">+10時間（テスト）</button>
+
+</div>
 
 </div>
 
