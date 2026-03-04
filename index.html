@@ -118,6 +118,32 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
   color:white;
   border:none;
 }
+.progress {
+  width: 80%;
+  height: 25px;
+  background: #ddd;
+  margin: 15px auto;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: gold;
+  border-radius: 20px;
+  transition: width 0.5s ease, background 0.5s ease;
+}
+
+.progress-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  top: 0;
+  line-height: 25px;
+  font-weight: bold;
+}
 </style>
 </head>
 
@@ -166,7 +192,8 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 </div>
 
 <div class="progress">
-    <div class="progress-bar" id="progressBar"></div>
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="progress-text" id="progressText">0%</div>
 </div>
 
 <div>
@@ -284,11 +311,19 @@ function updateDisplay(){
         const remaining = nextRank.hours - totalHours;
         document.getElementById("nextRank").innerText = remaining.toFixed(1);
 
-        const range = nextRank.hours - currentRank.hours;
-        const progress = totalHours - currentRank.hours;
-        const percent = (progress / range) * 100;
+const range = nextRank.hours - currentRank.hours;
+const progress = totalHours - currentRank.hours;
+const percent = (progress / range) * 100;
 
-        document.getElementById("progressBar").style.width = percent + "%";
+const bar = document.getElementById("progressBar");
+bar.style.width = percent + "%";
+
+/* ランク色に変更 */
+bar.style.background = currentRank.color;
+
+/* %表示 */
+document.getElementById("progressText").innerText =
+  percent.toFixed(1) + "%";
 
     }else{
         document.getElementById("nextRank").innerText = "達成済み";
