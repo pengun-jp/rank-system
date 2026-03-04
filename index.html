@@ -120,68 +120,51 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
   color:white;
   border:none;
 }
-.progress {
+.progress-wrapper{
   width: 80%;
-  height: 25px;
-  background: #ddd;
   margin: 15px auto;
-  border-radius: 20px;
   position: relative;
-  overflow: visible;   /* ← ここ変更 */
 }
 
-.progress-bar {
+.progress{
+  height: 25px;
+  background: #ddd;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden; /* ← ここは隠してOK */
+}
+
+.progress-bar{
   height: 100%;
   width: 0%;
   border-radius: 20px;
   transition: width 0.5s ease, background 0.5s ease;
 }
 
-.progress-text {
-  position: absolute;
-  width: 100%;
-  text-align: center;
-  top: 0;
-  line-height: 25px;
-  font-weight: bold;
-}
-.progress-bar::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -50%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    120deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.6) 50%,
-    rgba(255,255,255,0) 100%
-  );
-  animation: shine 3s infinite;
-}
-
-@keyframes shine {
-  0% { left: -50%; }
-  100% { left: 120%; }
-}
-.progress-bar.glow {
+.progress-bar.glow{
   animation: glowPulse 2s infinite alternate;
 }
 
-@keyframes glowPulse {
-  0% {
+@keyframes glowPulse{
+  0%{
     box-shadow:
       0 0 5px currentColor,
-      0 0 10px currentColor,
       0 0 15px currentColor;
   }
-  100% {
+  100%{
     box-shadow:
-      0 0 15px currentColor,
-      0 0 30px currentColor,
-      0 0 45px currentColor;
+      0 0 20px currentColor,
+      0 0 40px currentColor;
   }
+}
+
+.progress-text{
+  position:absolute;
+  width:100%;
+  text-align:center;
+  top:0;
+  line-height:25px;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -230,9 +213,11 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 
 </div>
 
-<div class="progress">
-  <div class="progress-bar" id="progressBar"></div>
-  <div class="progress-text" id="progressText">0%</div>
+<div class="progress-wrapper">
+  <div class="progress">
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="progress-text" id="progressText">0%</div>
+  </div>
 </div>
 
 <div>
