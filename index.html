@@ -121,41 +121,38 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
   border:none;
 }
 .progress-wrapper{
-  width: 80%;
-  margin: 15px auto;
-  position: relative;
+  width:80%;
+  margin:30px auto;
+  position:relative;
 }
 
+/* 光レイヤー */
+.progress-glow{
+  position:absolute;
+  height:25px;
+  width:0%;
+  border-radius:20px;
+  top:0;
+  left:0;
+  filter:blur(15px);
+  opacity:0.7;
+  transition:width 0.5s ease, background 0.5s ease;
+}
+
+/* 本体 */
 .progress{
-  height: 25px;
-  background: #ddd;
-  border-radius: 20px;
-  position: relative;
-  overflow: hidden; /* ← ここは隠してOK */
+  height:25px;
+  background:#ddd;
+  border-radius:20px;
+  position:relative;
+  overflow:hidden;
 }
 
 .progress-bar{
-  height: 100%;
-  width: 0%;
-  border-radius: 20px;
-  transition: width 0.5s ease, background 0.5s ease;
-}
-
-.progress-bar.glow{
-  animation: glowPulse 2s infinite alternate;
-}
-
-@keyframes glowPulse{
-  0%{
-    box-shadow:
-      0 0 5px currentColor,
-      0 0 15px currentColor;
-  }
-  100%{
-    box-shadow:
-      0 0 20px currentColor,
-      0 0 40px currentColor;
-  }
+  height:100%;
+  width:0%;
+  border-radius:20px;
+  transition:width 0.5s ease, background 0.5s ease;
 }
 
 .progress-text{
@@ -214,6 +211,7 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 </div>
 
 <div class="progress-wrapper">
+  <div class="progress-glow" id="progressGlow"></div>
   <div class="progress">
     <div class="progress-bar" id="progressBar"></div>
     <div class="progress-text" id="progressText">0%</div>
