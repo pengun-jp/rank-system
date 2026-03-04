@@ -108,7 +108,25 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 
 <div id="monthTotal">今月合計: 0 h</div>
 <div id="calendar"></div>
+<div class="ranking-container">
 
+  <div class="ranking-box">
+    <h2>総合ランキング</h2>
+    <div id="totalRank"></div>
+  </div>
+
+  <div class="ranking-box">
+    <h2>今月のランキング</h2>
+    <div id="monthRank"></div>
+  </div>
+
+  <div class="ranking-box">
+    <h2>今週のランキング</h2>
+    <div id="weekRank"></div>
+  </div>
+
+</div>
+    
 </div>
 
 <!-- ----------------------- -->
@@ -343,25 +361,5 @@ function renderRanking(elementId,data,column){
 
 startLiveTimer();
 </script>
-
-<div class="ranking-container">
-
-  <div class="ranking-box">
-    <h2>総合ランキング</h2>
-    <div id="totalRank"></div>
-  </div>
-
-  <div class="ranking-box">
-    <h2>今月のランキング</h2>
-    <div id="monthRank"></div>
-  </div>
-
-  <div class="ranking-box">
-    <h2>今週のランキング</h2>
-    <div id="weekRank"></div>
-  </div>
-
-</div>
-    
 </body>
 </html>
