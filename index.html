@@ -29,9 +29,11 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 .progress-bar {
   height: 100%;
   width: 0%;
-  background: gold;
   border-radius: 20px;
-  transition: width 0.5s ease;
+  transition: width 0.5s ease, background 0.5s ease;
+
+  /* ★ 内側発光 */
+  box-shadow: inset 0 0 10px rgba(255,255,255,0.6);
 }
 
 #calendar {
@@ -321,6 +323,8 @@ bar.style.width = percent + "%";
 
 /* ランク色に変更 */
 bar.style.background = currentRank.color;
+bar.style.boxShadow =
+  "0 0 8px " + currentRank.color + ", inset 0 0 10px rgba(255,255,255,0.6)";
 bar.style.color = currentRank.color; // ← 追加（これ重要）
 
 /* %表示 */
