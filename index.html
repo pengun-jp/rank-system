@@ -26,7 +26,13 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 }
 
 .progress { width: 80%; height: 25px; background: #ddd; margin: 15px auto; border-radius: 20px; }
-.progress-bar { height: 100%; width: 0%; background: gold; border-radius: 20px; }
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: gold;
+  border-radius: 20px;
+  transition: width 0.5s ease;
+}
 
 #calendar {
     display: grid;
@@ -159,7 +165,9 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 
 </div>
 
-<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+<div class="progress">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
 
 <div>
 <button onclick="changeMonth(-1)">◀ 前月</button>
@@ -254,6 +262,7 @@ function confirmResetData(){
   }
 }
 function updateDisplay(){
+    console.log("updateDisplay動いた", totalHours);
     document.getElementById("totalHours").innerText = totalHours.toFixed(1);
 
     let currentRank = ranks[0];
