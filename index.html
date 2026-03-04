@@ -127,7 +127,7 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
   margin: 15px auto;
   border-radius: 20px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;   /* ← ここ変更 */
 }
 
 .progress-bar {
@@ -171,12 +171,16 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 
 @keyframes glowPulse {
   0% {
-    box-shadow: 0 0 5px currentColor,
-                0 0 10px currentColor;
+    box-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 15px currentColor;
   }
   100% {
-    box-shadow: 0 0 15px currentColor,
-                0 0 30px currentColor;
+    box-shadow:
+      0 0 15px currentColor,
+      0 0 30px currentColor,
+      0 0 45px currentColor;
   }
 }
 </style>
