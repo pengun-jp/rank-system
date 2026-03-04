@@ -63,6 +63,27 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 .ranking-box h2 {
   margin-top: 0;
 }
+.button-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:20px 10%;
+}
+
+.left-buttons button{
+  margin-right:10px;
+}
+
+.right-buttons{
+  display:flex;
+  gap:10px;
+}
+
+.danger{
+  background:#dc3545;
+  color:white;
+  border:none;
+}
 </style>
 </head>
 
@@ -92,11 +113,20 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 
 <div id="timer">00:00:00</div>
 
-<button onclick="addTime()">+30分</button>
-<button onclick="startTimer()">スタート/一時停止</button>
-<button onclick="resetTimer()">タイマーリセット</button>
-<button onclick="resetData()">累計リセット</button>
-<button onclick="addTestHours()">+10時間（テスト）</button>
+<div class="button-row">
+
+  <div class="left-buttons">
+    <button onclick="addTime()">+30分</button>
+    <button onclick="startTimer()">スタート/一時停止</button>
+    <button onclick="addTestHours()">+10時間（テスト）</button>
+  </div>
+
+  <div class="right-buttons">
+    <button class="danger" onclick="confirmResetTimer()">タイマーリセット</button>
+    <button class="danger" onclick="confirmResetData()">累計リセット</button>
+  </div>
+
+</div>
 
 <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
 
@@ -181,6 +211,17 @@ function updateTimerDisplay(){
 }
 function addTestHours(){ totalHours+=10; updateDisplay(); }
 function resetData(){ totalHours=0; updateDisplay(); }
+function confirmResetTimer(){
+  if(confirm("本当にタイマーをリセットしますか？")){
+    resetTimer();
+  }
+}
+
+function confirmResetData(){
+  if(confirm("累計時間を完全にリセットしますか？この操作は戻せません。")){
+    resetData();
+  }
+}
 function updateDisplay(){
     document.getElementById("totalHours").innerText = totalHours.toFixed(1);
     let currentRank=ranks[0], nextRank=null;
