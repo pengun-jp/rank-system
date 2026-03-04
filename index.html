@@ -255,16 +255,36 @@ function confirmResetData(){
 }
 function updateDisplay(){
     document.getElementById("totalHours").innerText = totalHours.toFixed(1);
-    let currentRank=ranks[0], nextRank=null;
+
+    let currentRank = ranks[0];
+    let nextRank = null;
+
     for(let i=0;i<ranks.length;i++){
-        if(totalHours>=ranks[i].hours){ currentRank=ranks[i]; nextRank=ranks[i+1]; }
+        if(totalHours >= ranks[i].hours){
+            currentRank = ranks[i];
+            nextRank = ranks[i+1];
+        }
     }
-    const rankEl=document.getElementById("rank");
-    rankEl.innerText=currentRank.name;
-    rankEl.style.color=currentRank.color;
-    rankEl.style.webkitTextStroke="0.6px "+currentRank.stroke;
-    if(nextRank){ document.getElementById("nextRank").innerText=(nextRank.hours-totalHours).toFixed(1); }
-    else{ document.getElementById("nextRank").innerText="達成済み"; }
+
+    const rankEl = document.getElementById("rank");
+    rankEl.innerText = currentRank.name;
+    rankEl.style.color = currentRank.color;
+    rankEl.style.webkitTextStroke = "0.6px " + currentRank.stroke;
+
+    if(nextRank){
+        const remaining = nextRank.hours - totalHours;
+        document.getElementById("nextRank").innerText = remaining.toFixed(1);
+
+        const range = nextRank.hours - currentRank.hours;
+        const progress = totalHours - currentRank.hours;
+        const percent = (progress / range) * 100;
+
+        document.getElementById("progressBar").style.width = percent + "%";
+
+    }else{
+        document.getElementById("nextRank").innerText = "達成済み";
+        document.getElementById("progressBar").style.width = "100%";
+    }
 }
 
 // カレンダー
