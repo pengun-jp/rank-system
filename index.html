@@ -333,9 +333,18 @@ function updateDisplay(){
         const remaining = nextRank.hours - totalHours;
         document.getElementById("nextRank").innerText = remaining.toFixed(1);
 
-const range = nextRank.hours - currentRank.hours;
-const progress = totalHours - currentRank.hours;
-const percent = (progress / range) * 100;
+let percent = 0;
+if(nextRank){
+    const progress = totalHours - currentRank.hours;
+    const range = nextRank.hours - currentRank.hours;
+    percent = (progress / range) * 100;
+} else {
+    // 最終ランクなら100%
+    percent = 100;
+}
+percent = Math.min(100, percent); // 念のため100%超えないように
+progressBar.style.width = percent + "%";
+progressBar.innerText = Math.floor(percent) + "%";
 
 const bar = document.getElementById("progressBar");
 bar.style.width = percent + "%";
