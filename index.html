@@ -61,6 +61,10 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
   <button onclick="signOut()">ログアウト</button>
   <p id="authMessage"></p>
   <p id="currentUser"></p>
+　<h3>ユーザーネーム変更</h3>
+　<input id="newNickname" type="text" placeholder="新しいユーザーネーム">
+　<button onclick="updateNickname()">変更する</button>
+　<p id="nicknameMessage"></p>
 </div>
 
 <p>累計時間: <span id="totalHours">0</span> h</p>
@@ -217,11 +221,39 @@ async function signOut(){
   document.getElementById("authMessage").innerText = "ログアウトしました";
   document.getElementById("currentUser").innerText = "";
 }
-async function showCurrentUser(){
+async function showCurrentUser() {
   const { data: { user } } = await supabaseClient.auth.getUser();
-  if(user){
+
+  if (user) {
+    const nickname = user.user_metadata?.nickname;
+
     document.getElementById("currentUser").innerText =
-      "ログイン中: " + user.email;
+      "ログイン中: " + (nickname || user.email);
+  }
+}
+    async function updateNickname() {
+  const newNickname = document.getElementById("newNickname").value;
+
+  if (!newNickname) {
+    document.getElementById("nicknameMessage").innerText = "名前を入力してください";
+    return;
+  }
+
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) {
+    document.getElementById("nicknameMessage").innerText = "ログインしてください";
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({
+    data: { nickname: newNickname }
+  });
+
+  if (error) {
+    document.getElementById("nicknameMessage").innerText = error.message;
+  } else {
+    document.getElementById("nicknameMessage").innerText = "変更成功！";
+    showCurrentUser();
   }
 }
 console.log("Supabase接続成功:", supabaseClient);
@@ -304,4 +336,3 @@ startLiveTimer();
 
 </body>
 </html>
-showCurrentUser();
