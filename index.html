@@ -63,6 +63,55 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
   #timer { font-size: 40px; }
   .ranking-box { width: 90%; }
 }
+/* ランキングの親容器 */
+.ranking-section {
+    margin-top: 40px;
+}
+
+/* 展開用ボタン（見出しをボタン化） */
+.ranking-toggle {
+    width: 100%;
+    max-width: 330px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin: 10px auto;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.ranking-toggle:hover {
+    background: #e9ecef;
+}
+
+/* 中身のランキングリスト（最初は隠す） */
+.ranking-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out; /* ヌルッと開くアニメーション */
+    width: 100%;
+    max-width: 330px;
+    margin: 0 auto;
+}
+
+/* 開いている時の状態 */
+.ranking-content.open {
+    max-height: 1000px; /* 十分な高さを確保 */
+    margin-bottom: 20px;
+}
+
+/* 矢印アイコンの向き */
+.arrow {
+    transition: transform 0.3s;
+}
+.open .arrow {
+    transform: rotate(180deg);
+}
 </style>
 </head>
 
@@ -119,28 +168,49 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
     <div id="monthTotal" style="margin:10px 0;">今月合計: 0 h</div>
     <div id="calendar"></div>
 
-    <div class="ranking-container">
-        <div class="ranking-box">
-            <h2>今日のランキング</h2>
+   <div class="ranking-section">
+    <h2>🏆 ランキング</h2>
+
+    <div class="ranking-toggle" onclick="toggleRank('dailyContent')">
+        今日のランキング <span class="arrow">▼</span>
+    </div>
+    <div id="dailyContent" class="ranking-content">
+        <div class="ranking-box" style="width: 100%; margin: 0;">
             <div id="dailyRank"></div>
             <p id="myRankDaily" style="font-weight:bold;color:#0d6efd;"></p>
         </div>
-        <div class="ranking-box">
-            <h2>今週のランキング</h2>
+    </div>
+
+    <div class="ranking-toggle" onclick="toggleRank('weekContent')">
+        今週のランキング <span class="arrow">▼</span>
+    </div>
+    <div id="weekContent" class="ranking-content">
+        <div class="ranking-box" style="width: 100%; margin: 0;">
             <div id="weekRank"></div>
             <p id="myRankWeek" style="font-weight:bold;color:#0d6efd;"></p>
         </div>
-        <div class="ranking-box">
-            <h2>今月のランキング</h2>
+    </div>
+
+    <div class="ranking-toggle" onclick="toggleRank('monthContent')">
+        今月のランキング <span class="arrow">▼</span>
+    </div>
+    <div id="monthContent" class="ranking-content">
+        <div class="ranking-box" style="width: 100%; margin: 0;">
             <div id="monthRank"></div>
             <p id="myRankMonth" style="font-weight:bold;color:#0d6efd;"></p>
         </div>
-        <div class="ranking-box">
-            <h2>総合ランキング</h2>
+    </div>
+
+    <div class="ranking-toggle" onclick="toggleRank('totalContent')">
+        総合ランキング <span class="arrow">▼</span>
+    </div>
+    <div id="totalContent" class="ranking-content">
+        <div class="ranking-box" style="width: 100%; margin: 0;">
             <div id="totalRank"></div>
             <p id="myRankTotal" style="font-weight:bold;color:#0d6efd;"></p>
         </div>
     </div>
+</div>
 </div> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // --- 基本データ ---
@@ -366,6 +436,16 @@ function renderCalendar(){
 let currentDate = new Date();
 function changeMonth(offset){ currentDate.setMonth(currentDate.getMonth()+offset); renderCalendar(); }
 
+// ランキングの開閉を制御する関数
+function toggleRank(id) {
+    const content = document.getElementById(id);
+    // 「open」というクラスがついていれば外し、なければ付ける
+    content.classList.toggle('open');
+    
+    // 矢印を回転させるための処理（ボタン自体のクラスも切り替える）
+    const toggle = content.previousElementSibling;
+    toggle.classList.toggle('open');
+}
 // 初期化
 showCurrentUser();
 updateDisplay();
