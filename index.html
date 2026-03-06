@@ -507,6 +507,17 @@ let liveInterval = null; // 追加：タイマー管理用
 
 // スタート/一時停止式
 function startLiveTimer() {
+　// タブの表示状態が変わったとき
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    // タブを離れた → タイマーを停止
+    if (liveInterval) {
+      clearInterval(liveInterval);
+      liveInterval = null;
+      console.log("タブ離脱: タイマー一時停止");
+    }
+  }
+});
   if (liveInterval) {
     // すでに動いていたら停止
     clearInterval(liveInterval);
