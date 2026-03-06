@@ -11,37 +11,30 @@ body { font-family: Arial; text-align: center; background: #fff; margin: 0; padd
 .container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 20px; box-sizing: border-box; position: relative; }
 button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; border-radius: 5px; border: 1px solid #ccc; background: #f8f9fa; }
 
-#timer { 
-    font-family: 'Orbitron'; 
-    font-size: 45px; 
-    color: #0d6efd; 
-    -webkit-text-stroke: 0.6px #004080; 
-    margin: 10px 0;
-}
-
+/* ステータス周り */
+#timer { font-family: 'Orbitron'; font-size: 45px; color: #0d6efd; -webkit-text-stroke: 0.6px #004080; margin: 10px 0; }
 #totalHours { font-size: 32px; color: #333; font-weight: bold; }
-#rank { font-family: 'Bangers'; font-size: 36px; }
+#rank { font-family: 'Bangers'; font-size: 40px; }
 
-.progress-wrapper { width: 90%; margin: 20px auto; position: relative; }
+/* ゲージ */
+.progress-wrapper { width: 90%; margin: 30px auto; position: relative; }
 .progress { height: 25px; background: #ddd; border-radius: 20px; position: relative; overflow: hidden; }
-.progress-bar { height: 100%; width: 0%; border-radius: 20px; transition: width 0.5s ease; background: #0d6efd; }
-.progress-text { position: absolute; width: 100%; text-align: center; top: 0; line-height: 25px; font-weight: bold; color: #000; }
+.progress-bar { height: 100%; width: 0%; border-radius: 20px; transition: width 0.5s ease; box-shadow: inset 0 0 10px rgba(255,255,255,0.6); }
+.progress-text { position: absolute; width: 100%; text-align: center; top: 0; line-height: 25px; font-weight: bold; }
 
+/* カレンダー */
 #calendar { display: grid; grid-template-columns: repeat(7, 1fr); grid-gap: 5px; max-width: 350px; margin: 20px auto; }
 .day { aspect-ratio: 1/1; line-height: 40px; border-radius: 5px; background: #ebedf0; border: 1px solid #eee; font-size: 12px; }
 
+/* ランキング折りたたみ */
 .ranking-section { margin-top: 40px; }
-.ranking-toggle {
-    width: 100%; max-width: 330px; background: #f8f9fa; border: 1px solid #ddd;
-    padding: 15px; margin: 10px auto; border-radius: 10px; cursor: pointer;
-    display: flex; justify-content: space-between; align-items: center; font-weight: bold;
-}
+.ranking-toggle { width: 100%; max-width: 330px; background: #f8f9fa; border: 1px solid #ddd; padding: 15px; margin: 10px auto; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 18px; }
 .ranking-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; width: 100%; max-width: 330px; margin: 0 auto; }
 .ranking-content.open { max-height: 400px; overflow-y: auto; border: 1px solid #ddd; background: #fff; }
 .arrow { transition: transform 0.3s; }
 .open .arrow { transform: rotate(180deg); }
 
-.danger { background: #dc3545; color: white; border: none; }
+.danger { background: #dc3545; color: white; border: none; font-size: 12px; padding: 5px 10px; }
 </style>
 </head>
 
@@ -52,34 +45,38 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
     <div id="streakDisplay" style="font-size: 24px; font-weight: bold; color: #ff4500; margin: 10px 0; font-family: 'Orbitron', sans-serif;">🌵 準備完了</div>
 
     <div style="position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 5px;">
-        <button class="danger" onclick="confirmResetTimer()" style="font-size: 10px; padding: 5px;">リセット</button>
+        <button class="danger" onclick="confirmResetTimer()">タイマーリセット</button>
+        <button class="danger" onclick="confirmResetData()">累計リセット</button>
     </div>
 
-    <button onclick="addTestHours()" style="position: absolute; top: 20px; left: 20px; background: #6c757d; color: white; border: none; font-size: 10px; padding: 5px; border-radius: 5px;">+10h (TEST)</button>
+    <button onclick="addTestHours()" style="position: absolute; top: 20px; left: 20px; background: #6c757d; color: white; border: none; font-size: 12px; padding: 5px 10px; border-radius: 5px;">+10h (テスト)</button>
 
     <div style="background:#f1f3f5; padding:15px; border-radius:10px; margin: 20px auto; max-width: 500px;">
-        <h3>Account</h3>
-        <input id="email" type="email" placeholder="Email" style="padding:5px;">
-        <input id="password" type="password" placeholder="Pass" style="padding:5px;">
+        <h3>アカウント</h3>
+        <input id="email" type="email" placeholder="メール" style="padding:8px;">
+        <input id="password" type="password" placeholder="パスワード" style="padding:8px;">
         <div style="margin-top:10px;">
             <button onclick="signUp()">登録</button>
             <button onclick="signIn()">ログイン</button>
             <button onclick="signOut()">ログアウト</button>
         </div>
-        <p id="currentUser" style="font-weight:bold; font-size: 12px;"></p>
+        <p id="currentUser" style="font-weight:bold; margin-top:10px;"></p>
+        <hr>
+        <input id="newNickname" type="text" placeholder="名前変更" style="padding:8px;">
+        <button onclick="updateNickname()">変更</button>
     </div>
 
     <p>累計時間: <span id="totalHours">0</span> h</p>
     <p id="totalHoursDetail" style="margin-top:-15px; margin-bottom:15px; color:#666; font-size:14px;"></p>
     
-    <p>Rank: <span id="rank">ブロンズ I</span></p>
-    <p style="font-size: 13px;">Next: <span id="nextRank">0</span> h</p>
+    <p>現在のランク: <span id="rank">ブロンズ I</span></p>
+    <p>次のランクまで: <span id="nextRank">0</span> h</p>
 
     <div id="timer">00:00:00</div>
 
-    <div>
+    <div style="margin: 20px 0;">
         <button onclick="addTime()">+30分</button>
-        <button onclick="startTimer()" style="padding: 10px 20px; font-weight: bold; background: #0d6efd; color:white;">START / PAUSE</button>
+        <button onclick="startTimer()" style="padding: 15px 30px; font-weight: bold; font-size: 20px; background: #0d6efd; color:white; border:none; border-radius:8px;">スタート / 一時停止</button>
     </div>
 
     <div class="progress-wrapper">
@@ -90,31 +87,45 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
     </div>
 
     <div style="margin-top:40px;">
-        <button onclick="changeMonth(-1)">◀</button>
-        <span id="monthLabel" style="font-weight:bold; font-size:18px; margin:0 10px;">2026年3月</span>
-        <button onclick="changeMonth(1)">▶</button>
+        <button onclick="changeMonth(-1)">◀ 前月</button>
+        <span id="monthLabel" style="font-weight:bold; font-size:20px; margin:0 15px;">2026年3月</span>
+        <button onclick="changeMonth(1)">次月 ▶</button>
     </div>
-    <div id="monthTotal" style="font-size: 14px; margin: 5px;">今月合計: 0 h</div>
+    <div id="monthTotal" style="margin:10px 0;">今月合計: 0 h</div>
     <div id="calendar"></div>
 
     <div class="ranking-section">
-        <h2>🏆 Ranking</h2>
+        <h2>🏆 ランキング</h2>
         <div class="ranking-toggle" onclick="toggleRank('totalContent')">総合ランキング <span class="arrow">▼</span></div>
-        <div id="totalContent" class="ranking-content"><div id="totalRank"></div><p id="myRankTotal"></p></div>
+        <div id="totalContent" class="ranking-content"><div id="totalRank"></div><p id="myRankTotal" style="padding:10px; font-weight:bold; color:#0d6efd;"></p></div>
         
         <div class="ranking-toggle" onclick="toggleRank('dailyContent')">今日のランキング <span class="arrow">▼</span></div>
-        <div id="dailyContent" class="ranking-content"><div id="dailyRank"></div><p id="myRankDaily"></p></div>
+        <div id="dailyContent" class="ranking-content"><div id="dailyRank"></div><p id="myRankDaily" style="padding:10px; font-weight:bold; color:#0d6efd;"></p></div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// --- 復活：18段階フルランクデータ ---
 const ranks = [
     { name:"ブロンズ I", hours:0, color:"#ff9900", stroke:"#cc6600" },
     { name:"ブロンズ II", hours:4, color:"#ff9900", stroke:"#cc6600" },
+    { name:"ブロンズ III", hours:11, color:"#ff9900", stroke:"#cc6600" },
     { name:"シルバー I", hours:20, color:"#c0c0c0", stroke:"#808080" },
+    { name:"シルバー II", hours:29, color:"#c0c0c0", stroke:"#808080" },
+    { name:"シルバー III", hours:43, color:"#c0c0c0", stroke:"#808080" },
     { name:"ゴールド I", hours:60, color:"#ffd700", stroke:"#ccaa00" },
-    { name:"ダイヤモンド I", hours:300, color:"#00ffff", stroke:"#009999" }
+    { name:"ゴールド II", hours:78, color:"#ffd700", stroke:"#ccaa00" },
+    { name:"ゴールド III", hours:104, color:"#ffd700", stroke:"#ccaa00" },
+    { name:"プラチナ I", hours:140, color:"#d0e0e3", stroke:"#9fb8bd" },
+    { name:"プラチナ II", hours:178, color:"#d0e0e3", stroke:"#9fb8bd" },
+    { name:"プラチナ III", hours:232, color:"#d0e0e3", stroke:"#9fb8bd" },
+    { name:"ダイヤモンド I", hours:300, color:"#00ffff", stroke:"#009999" },
+    { name:"ダイヤモンド II", hours:372, color:"#00ffff", stroke:"#009999" },
+    { name:"ダイヤモンド III", hours:476, color:"#00ffff", stroke:"#009999" },
+    { name:"カーボナド", hours:620, color:"#8b0000", stroke:"#550000" },
+    { name:"パラゴン", hours:1260, color:"#4b0082", stroke:"#2e004d" },
+    { name:"オムニス", hours:2540, color:"#00ff99", stroke:"#009966" }
 ];
 
 let totalHours = 0;
@@ -148,6 +159,19 @@ function updateTimerDisplay(){
     document.getElementById("timer").innerText=`${h}:${m}:${s}`;
 }
 
+async function addTestHours(){ 
+    totalHours += 10; 
+    updateDisplay(); 
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if(!user) return;
+    const todayStr = new Date().toLocaleDateString('sv-SE');
+    const { data: currentLog } = await supabaseClient.from("daily_logs").select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
+    await supabaseClient.from("daily_logs").upsert({ user_id: user.id, work_date: todayStr, minutes: (currentLog?.minutes || 0) + 600 }, { onConflict: "user_id,work_date" });
+    await supabaseClient.from("record").upsert({ user_id: user.id, total_minutes: Math.round(totalHours * 60), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    updateRanking(); renderCalendar();
+    alert("10hブースト完了！");
+}
+
 function updateDisplay() {
     const streakText = document.getElementById("streakDisplay").innerText;
     const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
@@ -158,7 +182,7 @@ function updateDisplay() {
     const bonusHours = totalWithBonus - rawHours;
 
     document.getElementById("totalHours").innerText = totalWithBonus.toFixed(1);
-    document.getElementById("totalHoursDetail").innerText = `(実質: ${rawHours.toFixed(1)}h + 🎁: ${bonusHours.toFixed(1)}h)`;
+    document.getElementById("totalHoursDetail").innerText = `(実質努力: ${rawHours.toFixed(1)}h + 🎁ボーナス: ${bonusHours.toFixed(1)}h)`;
 
     let currentRank = ranks[0], nextRank = null;
     for(let i=0; i<ranks.length-1; i++){
@@ -166,22 +190,31 @@ function updateDisplay() {
             currentRank = ranks[i]; nextRank = ranks[i+1]; break;
         }
     }
+    if(totalWithBonus >= ranks[ranks.length-1].hours) currentRank = ranks[ranks.length-1];
+
     const rankEl = document.getElementById("rank");
-    rankEl.innerText = currentRank.name; rankEl.style.color = currentRank.color;
+    rankEl.innerText = currentRank.name;
+    rankEl.style.color = currentRank.color;
+    rankEl.style.webkitTextStroke = "0.6px " + currentRank.stroke;
 
     const bar = document.getElementById("progressBar");
     if(nextRank){
         document.getElementById("nextRank").innerText = (nextRank.hours - totalWithBonus).toFixed(1);
         let percent = ((totalWithBonus - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
         bar.style.width = percent + "%";
+        bar.style.background = currentRank.color;
         document.getElementById("progressText").innerText = Math.floor(percent) + "%";
+    } else {
+        document.getElementById("nextRank").innerText = "MAX";
+        bar.style.width = "100%";
+        document.getElementById("progressText").innerText = "100%";
     }
 }
 
 async function signUp(){
     const email=document.getElementById("email").value, password=document.getElementById("password").value;
     const { error } = await supabaseClient.auth.signUp({ email, password });
-    alert(error ? error.message : "確認メールを送りました");
+    alert(error ? error.message : "登録成功！");
 }
 async function signIn(){
     const email = document.getElementById("email").value, password = document.getElementById("password").value;
@@ -189,6 +222,15 @@ async function signIn(){
     if(error) alert(error.message); else init();
 }
 async function signOut(){ await supabaseClient.auth.signOut(); location.reload(); }
+
+async function updateNickname() {
+    const name = document.getElementById("newNickname").value;
+    if(!name) return;
+    await supabaseClient.auth.updateUser({ data: { nickname: name } });
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    await supabaseClient.from("record").upsert({ user_id: user.id, username: name }, { onConflict: "user_id" });
+    location.reload();
+}
 
 async function saveToSupabase() {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -201,7 +243,8 @@ async function saveToSupabase() {
 }
 
 async function updateRanking(){
-    const types = [{ col: "total_minutes", id: "totalRank" }, { col: "daily_minutes", id: "dailyRank" }];
+    const types = [{ col: "total_minutes", id: "totalRank", my: "myRankTotal" }, { col: "daily_minutes", id: "dailyRank", my: "myRankDaily" }];
+    const { data: { user } } = await supabaseClient.auth.getUser();
     for(let t of types) {
         const { data } = await supabaseClient.from("record").select("*").order(t.col, {ascending:false}).limit(10);
         const div = document.getElementById(t.id); div.innerHTML = "";
@@ -209,9 +252,15 @@ async function updateRanking(){
             const mult = getBonusMultiplier(r.streak_days || 0);
             const totalM = r[t.col] || 0;
             const rawM = Math.round(totalM / mult);
-            div.innerHTML += `<div style="font-size:12px; padding:5px; border-bottom:1px solid #eee; text-align:left;">
-                ${i+1}位: ${r.username || 'User'}<br><b>${(totalM/60).toFixed(1)}h</b> <small>(実:${(rawM/60).toFixed(1)}h + 🎁)</small></div>`;
+            div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">
+                ${i+1}位: ${r.username || '匿名ユーザー'}<br>
+                <b style="color:#0d6efd;">${(totalM/60).toFixed(1)}h</b> <span style="font-size:11px; color:#666;">(実:${(rawM/60).toFixed(1)}h + 🎁)</span></div>`;
         });
+        if(user) {
+            const { data: all } = await supabaseClient.from("record").select("user_id").order(t.col, {ascending:false});
+            const myIdx = all?.findIndex(a => a.user_id === user.id) + 1;
+            document.getElementById(t.my).innerText = `あなたの順位: ${myIdx || '-'}位`;
+        }
     }
 }
 
@@ -235,28 +284,42 @@ async function renderCalendar() {
     document.getElementById("streakDisplay").innerText = streakCount > 0 ? `🔥 ${streakCount}日連続中！` : `🌵 記録を始めよう`;
     updateDisplay();
 
-    // カレンダー描画
+    // 復活：カレンダー4段階色分け
     const calendar = document.getElementById("calendar"); calendar.innerHTML = "";
     const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate();
     for (let i = 0; i < firstDay; i++) calendar.appendChild(document.createElement("div"));
+    
+    const thisMonthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const thisMonthLogs = logs?.filter(l => l.work_date.startsWith(thisMonthPrefix));
+    const totalMins = thisMonthLogs ? thisMonthLogs.reduce((sum, l) => sum + l.minutes, 0) : 0;
+    document.getElementById("monthTotal").innerText = `今月合計: ${(totalMins/60).toFixed(1)} h`;
+
     for (let d = 1; d <= daysInMonth; d++) {
         const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         const log = logs?.find(l => l.work_date === dStr);
         const el = document.createElement("div"); el.className = "day"; el.innerText = d;
-        if (log?.minutes > 0) el.style.background = "#40c463";
+        if (log?.minutes > 0) {
+            const m = log.minutes;
+            if (m >= 300) el.style.background = "#216e39";
+            else if (m >= 120) el.style.background = "#30a14e";
+            else if (m >= 30) el.style.background = "#40c463";
+            else el.style.background = "#9be9a8";
+            el.style.color = m >= 120 ? "white" : "black";
+        }
         calendar.appendChild(el);
     }
 }
 
 function getBonusMultiplier(s) { return s >= 14 ? 1.2 : s >= 7 ? 1.1 : s >= 3 ? 1.05 : 1.0; }
 function changeMonth(o){ currentDate.setMonth(currentDate.getMonth()+o); renderCalendar(); }
-function toggleRank(id){ document.getElementById(id).classList.toggle('open'); }
-function confirmResetTimer(){ if(confirm("リセット？")){ remainingSeconds=0; updateTimerDisplay(); } }
+function toggleRank(id){ document.getElementById(id).classList.toggle('open'); document.getElementById(id).previousElementSibling.querySelector('.arrow').style.transform = document.getElementById(id).classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; }
+function confirmResetTimer(){ if(confirm("タイマーをリセットしますか？")){ remainingSeconds=0; updateTimerDisplay(); } }
+function confirmResetData(){ if(confirm("全ての累計データをリセットしますか？")){ totalHours=0; updateDisplay(); } }
 
 async function init() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (user) {
-        document.getElementById("currentUser").innerText = `Login: ${user.email}`;
+        document.getElementById("currentUser").innerText = "ログイン中: " + (user.user_metadata?.nickname || user.email);
         const { data } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
         totalHours = (data?.total_minutes || 0) / 60;
         renderCalendar(); updateRanking();
