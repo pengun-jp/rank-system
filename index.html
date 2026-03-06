@@ -305,7 +305,11 @@ function updateTimerDisplay(){
     const s=String(remainingSeconds%60).padStart(2,"0");
     document.getElementById("timer").innerText=`${h}:${m}:${s}`;
 }
-function addTestHours(){ totalHours+=10; updateDisplay(); }
+function addTestHours(){ 
+    totalHours += 10; 
+    updateDisplay(); 
+    saveToSupabase(); // ← テスト時も即保存
+}
 function resetData(){ totalHours=0; updateDisplay(); }
 function confirmResetTimer(){
   if(confirm("本当にタイマーをリセットしますか？")){
@@ -531,7 +535,6 @@ let liveTotalSeconds=0, liveWeeklySeconds=0, liveMonthlySeconds=0, liveCounter=0
 
 async function tickTimer(){
     const { data: { user } } = await supabaseClient.auth.getUser();
-    // ログインしていない、またはタイマーが動いていない時はカウントしない
     if(!user || !timerInterval) return; 
 
     liveTotalSeconds++;
@@ -539,12 +542,15 @@ async function tickTimer(){
     liveMonthlySeconds++;
     liveCounter++;
 
-    // 60秒ごとにDBへ保存
     if(liveCounter >= 60){
         liveCounter = 0;
+        
+        // ★ニックネームを取得（メタデータから）
+        const nickname = user.user_metadata?.nickname || user.email.split('@')[0];
+
         let record = {
             user_id: user.id,
-            username: user.email,
+            username: nickname, // ここをnicknameにするか、テーブルにnicknameカラムを追加してそこに入れる
             total_minutes: Math.floor(liveTotalSeconds / 60),
             weekly_minutes: Math.floor(liveWeeklySeconds / 60),
             monthly_minutes: Math.floor(liveMonthlySeconds / 60)
@@ -607,25 +613,40 @@ function renderRanking(elementId, data, column){
     data.forEach((user, index) => {
         let medal = (index === 0) ? "🥇 " : (index === 1) ? "🥈 " : (index === 2) ? "🥉 " : "";
         
-        // 元のデータ（分）を取得
         const totalMinutes = user[column];
-        
-        // 時間と分に計算
         const h = Math.floor(totalMinutes / 60);
         const m = totalMinutes % 60;
-        
-        // 0時間の場合は「〇m」だけ、そうでないなら「〇h 〇m」
         const timeString = h > 0 ? `${h}h ${m}m` : `${m}m`;
         
-        const name = user.username.split('@')[0];
+        // ★表示名の判定：メール形式なら@前、そうでないならそのまま
+        let displayName = user.username || "Unknown";
+        if(displayName.includes('@')) {
+            displayName = displayName.split('@')[0];
+        }
 
         div.innerHTML += `<p style="text-align:left; border-bottom:1px solid #eee; margin:5px 0; padding:3px;">
-            ${medal}${index+1}位 ${name} - <strong>${timeString}</strong>
+            ${medal}${index+1}位 ${displayName} - <strong>${timeString}</strong>
         </p>`;
     });
 }
+async function saveToSupabase() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if(!user) return;
 
+    const nickname = user.user_metadata?.nickname || user.email.split('@')[0];
+
+    let record = {
+        user_id: user.id,
+        username: nickname,
+        total_minutes: Math.floor(totalHours * 60),
+        weekly_minutes: Math.floor(totalHours * 60),
+        monthly_minutes: Math.floor(totalHours * 60)
+    };
+    await supabaseClient.from("record").upsert(record, { onConflict: "user_id" });
+    updateRanking();
+}
 startLiveTimer();
+
 </script>
 </body>
 </html>
