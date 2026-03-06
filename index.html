@@ -335,7 +335,9 @@ function updateDisplay(){
 
 const range = nextRank.hours - currentRank.hours;
 const progress = totalHours - currentRank.hours;
-const percent = (progress / range) * 100;
+
+let percent = range === 0 ? 100 : (progress / range) * 100;
+percent = Math.min(100, percent);
 
 const bar = document.getElementById("progressBar");
 bar.style.width = percent + "%";
