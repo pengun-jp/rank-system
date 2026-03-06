@@ -350,6 +350,12 @@ percent = Math.min(100, percent);
 
 const bar = document.getElementById("progressBar");
 bar.style.width = percent + "%";
+const glow = document.getElementById("progressGlow");
+
+bar.style.background = currentRank.color;
+glow.style.background = currentRank.color;
+
+glow.style.width = percent + "%";
 
 /* ランク色に変更 */
 bar.style.background = currentRank.color;
@@ -363,17 +369,21 @@ bar.style.color = currentRank.color; // ← 追加（これ重要）
 document.getElementById("progressText").innerText =
   percent.toFixed(1) + "%";
 
-   }else{
-    document.getElementById("nextRank").innerText = "達成済み";
+  }else{
 
     const bar = document.getElementById("progressBar");
+    const glow = document.getElementById("progressGlow");
+
+    document.getElementById("nextRank").innerText = "達成済み";
 
     bar.style.width = "100%";
-    bar.style.background = currentRank.color;  // ←追加
-    bar.style.boxShadow = "0 0 8px " + currentRank.color; // ←追加
+    glow.style.width = "100%";
+
+    bar.style.background = currentRank.color;
+    glow.style.background = currentRank.color;
 
     document.getElementById("progressText").innerText = "100%";
-   }
+  }
 }
 
 // カレンダー
