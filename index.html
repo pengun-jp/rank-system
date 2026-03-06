@@ -363,10 +363,11 @@ bar.style.color = currentRank.color; // ← 追加（これ重要）
 document.getElementById("progressText").innerText =
   percent.toFixed(1) + "%";
 
-    }else{
-        document.getElementById("nextRank").innerText = "達成済み";
-        document.getElementById("progressBar").style.width = "100%";
-    }
+   }else{
+    document.getElementById("nextRank").innerText = "達成済み";
+    document.getElementById("progressBar").style.width = "100%";
+    document.getElementById("progressText").innerText = "100%";
+　　}
 }
 
 // カレンダー
