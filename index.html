@@ -317,12 +317,18 @@ function updateDisplay(){
     let currentRank = ranks[0];
     let nextRank = null;
 
-    for(let i=0;i<ranks.length;i++){
-        if(totalHours >= ranks[i].hours){
-            currentRank = ranks[i];
-            nextRank = ranks[i+1];
-        }
+   for(let i=0;i<ranks.length-1;i++){
+    if(totalHours >= ranks[i].hours && totalHours < ranks[i+1].hours){
+        currentRank = ranks[i];
+        nextRank = ranks[i+1];
+        break;
     }
+}
+
+if(totalHours >= ranks[ranks.length-1].hours){
+    currentRank = ranks[ranks.length-1];
+    nextRank = null;
+}
 
     const rankEl = document.getElementById("rank");
     rankEl.innerText = currentRank.name;
@@ -336,7 +342,10 @@ function updateDisplay(){
 const range = nextRank.hours - currentRank.hours;
 const progress = totalHours - currentRank.hours;
 
-let percent = range === 0 ? 100 : (progress / range) * 100;
+let percent = (progress / range) * 100;
+
+if(percent > 100) percent = 100;
+if(percent < 0) percent = 0;
 percent = Math.min(100, percent);
 
 const bar = document.getElementById("progressBar");
