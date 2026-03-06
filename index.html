@@ -13,16 +13,16 @@ body {
     text-align: center;
     font-family: Arial, sans-serif;
 
-    /* ★ ここに画像URLを入れる ★ */
-    background-image: https://sozaino.site/archives/10595
+    /* ★ ここにお気に入りの画像URLを貼り付け ★ */
+    background-image: url('https://sozaino.site/wp-content/uploads/2022/12/game2201.png'); 
+
     background-size: cover;          /* 画面いっぱいに広げる */
-    background-position: center;     /* 画像の真ん中を表示 */
+    background-position: center;     /* 中央合わせ */
     background-attachment: fixed;    /* スクロールしても背景を動かさない */
-    background-repeat: no-repeat;    /* 画像を繰り返さない */
+    background-repeat: no-repeat;    /* 繰り返さない */
     min-height: 100vh;
 }
 
-/* 背景画像の上で文字を見やすくするための「半透明の板」の設定 */
 .container {
     width: 100%;
     max-width: 1000px;
@@ -31,7 +31,7 @@ body {
     box-sizing: border-box;
     position: relative;
     
-    /* ↓ 背景が暗い画像でも文字が読めるように、コンテンツの裏を少し白く透かします */
+    /* 背景画像の上で文字を読みやすくする半透明の板（0.8は透明度） */
     background: rgba(255, 255, 255, 0.8); 
     min-height: 100vh;
     box-shadow: 0 0 20px rgba(0,0,0,0.2);
