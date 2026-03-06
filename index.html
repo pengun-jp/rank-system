@@ -163,6 +163,29 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
   line-height:25px;
   font-weight:bold;
 }
+/* 画面幅が600px以下の時（スマホ用）の設定 */
+@media (max-width: 600px) {
+  .button-area {
+    height: auto; /* 高さを固定せず中身に合わせる */
+    display: flex;
+    flex-direction: column; /* 縦に並べる */
+    gap: 15px;
+    align-items: center;
+  }
+
+  .center-buttons, .right-buttons {
+    position: static; /* 絶対配置を解除 */
+    transform: none; /* 中央寄せのズレを直す */
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .test-button {
+    position: static;
+    margin-top: 10px;
+  }
+}
 </style>
 </head>
 
