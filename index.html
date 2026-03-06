@@ -287,10 +287,15 @@ function startTimer(){
         remainingSeconds--;
         updateTimerDisplay();
         if(remainingSeconds<=0){
-            clearInterval(timerInterval); timerInterval=null;
-            totalHours+=0.5;
-            updateDisplay();
-        }
+    clearInterval(timerInterval); timerInterval=null;
+    totalHours += 0.5;
+    
+    // ★ここを追加：30分(1800秒)加算してDBに送る
+    liveTotalSeconds = totalHours * 3600; 
+    saveToSupabase(); 
+    
+    updateDisplay();
+}
     },1000);
 }
 function resetTimer(){ clearInterval(timerInterval); timerInterval=null; remainingSeconds=0; updateTimerDisplay(); }
@@ -443,21 +448,41 @@ async function signUp(){
 }
 
 async function signIn(){
-  const email=document.getElementById("email").value;
-  const password=document.getElementById("password").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-  const { error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
+  const { data: { user }, error } = await supabaseClient.auth.signInWithPassword({
+    email, password
   });
 
-if(error){
-  document.getElementById("authMessage").innerText = error.message;
-} else {
-  document.getElementById("authMessage").innerText = "ログイン成功";
-  showCurrentUser();
-  updateRanking();
-　　}
+  if(error){
+    document.getElementById("authMessage").innerText = error.message;
+  } else {
+    document.getElementById("authMessage").innerText = "ログイン成功";
+    // ★追加：DBからデータを読み込む
+    await loadUserRecord(user);
+    showCurrentUser();
+    updateRanking();
+  }
+}
+
+// ★新規追加：DBのデータを変数にセットする関数
+async function loadUserRecord(user) {
+  const { data, error } = await supabaseClient
+    .from("record")
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
+
+  if (data) {
+    // DBの「分」を「時間」に変換して反映
+    totalHours = data.total_minutes / 60;
+    liveTotalSeconds = data.total_minutes * 60;
+    liveWeeklySeconds = data.weekly_minutes * 60;
+    liveMonthlySeconds = data.monthly_minutes * 60;
+    
+    updateDisplay(); // 画面のランク表示などを更新
+  }
 }
 
 async function signOut(){
@@ -505,30 +530,27 @@ console.log("Supabase接続成功:", supabaseClient);
 let liveTotalSeconds=0, liveWeeklySeconds=0, liveMonthlySeconds=0, liveCounter=0;
 
 async function tickTimer(){
-
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if(!user) return; // ログインしてないなら保存しない
+    // ログインしていない、またはタイマーが動いていない時はカウントしない
+    if(!user || !timerInterval) return; 
 
     liveTotalSeconds++;
     liveWeeklySeconds++;
     liveMonthlySeconds++;
     liveCounter++;
 
-    if(liveCounter>=60){
-        liveCounter=0;
-
-        let record={
-            user_id:user.id,
-            username:user.email,
-            total_minutes:Math.floor(liveTotalSeconds/60),
-            weekly_minutes:Math.floor(liveWeeklySeconds/60),
-            monthly_minutes:Math.floor(liveMonthlySeconds/60)
+    // 60秒ごとにDBへ保存
+    if(liveCounter >= 60){
+        liveCounter = 0;
+        let record = {
+            user_id: user.id,
+            username: user.email,
+            total_minutes: Math.floor(liveTotalSeconds / 60),
+            weekly_minutes: Math.floor(liveWeeklySeconds / 60),
+            monthly_minutes: Math.floor(liveMonthlySeconds / 60)
         };
 
-        await supabaseClient
-            .from("record")
-            .upsert(record,{ onConflict:"user_id" });
-
+        await supabaseClient.from("record").upsert(record, { onConflict: "user_id" });
         updateRanking();
     }
 }
@@ -578,14 +600,28 @@ async function fetchRanking(column){
     const { data } = await supabaseClient.from("record").select("*").order(column,{ascending:false}).limit(100);
     return data||[];
 }
-function renderRanking(elementId,data,column){
+function renderRanking(elementId, data, column){
+    const div = document.getElementById(elementId);
+    div.innerHTML = "";
     
-    const div=document.getElementById(elementId);
-    div.innerHTML="";
-    data.forEach((user,index)=>{
-        let medal="";
-        if(index===0) medal="🥇 "; else if(index===1) medal="🥈 "; else if(index===2) medal="🥉 ";
-        div.innerHTML+=`<p>${medal}${index+1}位 ${user.username} - ${user[column]}分</p>`;
+    data.forEach((user, index) => {
+        let medal = (index === 0) ? "🥇 " : (index === 1) ? "🥈 " : (index === 2) ? "🥉 " : "";
+        
+        // 元のデータ（分）を取得
+        const totalMinutes = user[column];
+        
+        // 時間と分に計算
+        const h = Math.floor(totalMinutes / 60);
+        const m = totalMinutes % 60;
+        
+        // 0時間の場合は「〇m」だけ、そうでないなら「〇h 〇m」
+        const timeString = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        
+        const name = user.username.split('@')[0];
+
+        div.innerHTML += `<p style="text-align:left; border-bottom:1px solid #eee; margin:5px 0; padding:3px;">
+            ${medal}${index+1}位 ${name} - <strong>${timeString}</strong>
+        </p>`;
     });
 }
 
