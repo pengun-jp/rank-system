@@ -574,16 +574,27 @@ async function tickTimer(){
 }
 function startLiveTimer(){ setInterval(tickTimer,1000); }
 function resetIfNeeded(record){
-    const now=new Date();
-    const monday=new Date(now); monday.setDate(now.getDate()-now.getDay()+1); monday.setHours(0,0,0,0);
-    const lastWeek=new Date(record.created_at); lastWeek.setHours(0,0,0,0);
-    if(lastWeek<monday) record.weekly_minutes=0;
-    const currentMonth=now.getMonth();
-    const lastMonth=new Date(record.created_at).getMonth();
-    if(currentMonth!==lastMonth) record.monthly_minutes=0;
+    const now = new Date();
+    // 今週の月曜日 0:00 を取得
+    const monday = new Date(now);
+    const day = now.getDay(); 
+    const diff = now.getDate() - day + (day == 0 ? -6 : 1); // 月曜日を計算
+    monday.setDate(diff);
+    monday.setHours(0,0,0,0);
+
+    const lastUpdate = new Date(record.updated_at || record.created_at);
+
+    // 月曜日の0時より前に最後の更新があったら、今週分をリセット
+    if(lastUpdate < monday) {
+        record.weekly_minutes = 0;
+    }
+
+    // 月が変わっていたら今月分をリセット
+    if(now.getMonth() !== lastUpdate.getMonth() || now.getFullYear() !== lastUpdate.getFullYear()) {
+        record.monthly_minutes = 0;
+    }
     return record;
-}
-async function updateRanking(){
+}function updateRanking(){
 
     const totalRank=await fetchRanking("total_minutes");
     const weekRank=await fetchRanking("weekly_minutes");
@@ -643,36 +654,42 @@ function renderRanking(elementId, data, column){
 }
 async function saveToSupabase() {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if(!user) {
-        console.error("ログインしていません");
-        return;
+    if(!user) return;
+
+    // 現在の最新レコードを一旦取得して、リセット判定にかける
+    const { data: currentRecord } = await supabaseClient
+        .from("record")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+    let weeklyMinutes = Math.round(totalHours * 60);
+    let monthlyMinutes = Math.round(totalHours * 60);
+
+    if (currentRecord) {
+        // ★ ここでリセット判定を実行！
+        const cleaned = resetIfNeeded(currentRecord);
+        
+        // もしリセットされていたら、今の加算分だけにする
+        //（※ここを調整しないと、リセットされた瞬間に累計時間が週次に反映されちゃいます）
+        // 簡易的な方法：前回の保存時からの差分を足す形にするか、リセット時は0にする
+        weeklyMinutes = (cleaned.weekly_minutes === 0) ? 0 : Math.round(totalHours * 60); 
+        monthlyMinutes = (cleaned.monthly_minutes === 0) ? 0 : Math.round(totalHours * 60);
     }
 
     const nickname = user.user_metadata?.nickname || user.email.split('@')[0];
 
-    // Math.round で確実に「整数」に変換する（int4対策）
     const record = {
         user_id: user.id,
-        username: String(nickname), // 確実に文字列にする
+        username: String(nickname),
         total_minutes: Math.round(totalHours * 60),
-        weekly_minutes: Math.round(totalHours * 60),
-        monthly_minutes: Math.round(totalHours * 60)
+        weekly_minutes: weeklyMinutes,
+        monthly_minutes: monthlyMinutes,
+        updated_at: new Date().toISOString() // ★いつ更新したかを入れる
     };
 
-    console.log("今からこれを送るよ:", record); // デバッグ用
-
-    const { error } = await supabaseClient
-        .from("record")
-        .upsert(record, { onConflict: "user_id" });
-
-    if (error) {
-        // ここでエラーの正体を暴く！
-        console.error("エラー詳細:", error);
-        alert("エラー発生！\nメッセージ: " + error.message + "\n詳細: " + error.details);
-    } else {
-        console.log("保存成功！使徒、殲滅！");
-        updateRanking();
-    }
+    await supabaseClient.from("record").upsert(record, { onConflict: "user_id" });
+    updateRanking();
 }
 startLiveTimer();
 
