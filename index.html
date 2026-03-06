@@ -29,16 +29,40 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
 /* ★ お知らせ欄のスタイル ★ */
 .news-section {
     max-width: 500px;
-    margin: 40px auto;
+    margin: 30px auto;
     text-align: left;
     background: #fff8e1;
     border-left: 5px solid #ffc107;
-    padding: 15px;
-    border-radius: 4px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    overflow: hidden; /* 角丸からはみ出さないよう */
 }
-.news-title { font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
-.news-item { font-size: 14px; border-bottom: 1px dashed #ccc; padding: 5px 0; }
-.news-date { color: #888; font-size: 12px; margin-right: 10px; }
+.news-title { 
+    font-weight: bold; 
+    padding: 10px 15px;
+    background: #ffecb3;
+    font-size: 16px;
+}
+#newsContent {
+    max-height: 200px; /* ここで高さを制限 */
+    overflow-y: auto;  /* 長すぎたらスクロール */
+    padding: 0 15px;
+}
+.news-item { 
+    font-size: 14px; 
+    padding: 12px 0;
+    border-bottom: 1px solid #ffe082;
+    white-space: pre-wrap; /* ★ これで改行が有効になります */
+    line-height: 1.6;
+}
+.news-item:last-child { border-bottom: none; }
+.news-date { 
+    display: block;
+    color: #f57f17;
+    font-size: 11px; 
+    font-weight: bold;
+    margin-bottom: 4px;
+}
 
 /* ランキング */
 .ranking-section { margin-top: 40px; }
@@ -142,16 +166,15 @@ const supabaseUrl = "https://vfgfunxzthogghymrnnq.supabase.co", supabaseKey = "e
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 async function fetchNews() {
-    // 暫定的なお知らせ（Supabaseに'news'テーブルを作れば、そこから自動取得するように設定）
-    const { data: news, error } = await supabaseClient.from('news').select('*').order('created_at', { ascending: false }).limit(3);
+    const { data: news, error } = await supabaseClient.from('news').select('*').order('created_at', { ascending: false }).limit(5);
     const container = document.getElementById('newsContent');
     if (error || !news || news.length === 0) {
-        container.innerHTML = `<div class="news-item"><span class="news-date">SYSTEM</span>Study Arenaへようこそ！今日もコツコツ頑張りましょう。</div>`;
+        container.innerHTML = `<div class="news-item"><span class="news-date">SYSTEM</span>Study Arenaへようこそ！\n今日も自分のペースで積み上げていきましょう。</div>`;
         return;
     }
     container.innerHTML = news.map(item => `
         <div class="news-item">
-            <span class="news-date">${new Date(item.created_at).toLocaleDateString()}</span>${item.content}
+            <span class="news-date">📅 ${new Date(item.created_at).toLocaleDateString()}</span>${item.content}
         </div>
     `).join('');
 }
