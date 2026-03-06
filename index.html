@@ -508,33 +508,48 @@ async function renderCalendar() {
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    document.getElementById("monthLabel").innerText = `${year}年${month + 1}月`;
+    
+    // ラベルの更新（エラー防止のため存在確認）
+    const monthLabel = document.getElementById("monthLabel");
+    if (monthLabel) monthLabel.innerText = `${year}年${month + 1}月`;
     
     const calendar = document.getElementById("calendar");
-    // 今月の合計時間を計算
-    const totalMinutesThisMonth = logs ? logs.reduce((sum, log) => sum + log.minutes, 0) : 0;
-    const totalHoursThisMonth = (totalMinutesThisMonth / 60).toFixed(1);
-    
-    // 画面の「今月合計: 0 h」の部分を書き換える
-    const monthTotalEl = document.getElementById("monthTotal");
-    if(monthTotalEl) {
-        monthTotalEl.innerText = `今月合計: ${totalHoursThisMonth} h`;
-    }
+    if (!calendar) return;
     calendar.innerHTML = "";
 
     // Supabaseから今月のログを取得
-    const { data: logs } = await supabaseClient
+    const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const endDate = `${year}-${String(month + 1).padStart(2, '0')}-31`;
+
+    const { data: logs, error } = await supabaseClient
         .from("daily_logs")
         .select("*")
         .eq("user_id", user.id)
-        .gte("work_date", `${year}-${String(month + 1).padStart(2, '0')}-01`)
-        .lte("work_date", `${year}-${String(month + 1).padStart(2, '0')}-31`);
+        .gte("work_date", startDate)
+        .lte("work_date", endDate);
+
+    if (error) {
+        console.error("カレンダー取得エラー:", error);
+    }
+
+    // ★ 今月合計の計算
+    const totalMinutesThisMonth = logs ? logs.reduce((sum, log) => sum + log.minutes, 0) : 0;
+    const totalHoursThisMonth = (totalMinutesThisMonth / 60).toFixed(1);
+    const monthTotalEl = document.getElementById("monthTotal");
+    if (monthTotalEl) {
+        monthTotalEl.innerText = `今月合計: ${totalHoursThisMonth} h`;
+    }
 
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    for (let i = 0; i < firstDay; i++) { calendar.innerHTML += "<div></div>"; }
+    // 空白の追加
+    for (let i = 0; i < firstDay; i++) {
+        const spacer = document.createElement("div");
+        calendar.appendChild(spacer);
+    }
 
+    // 日付の描画
     for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayLog = logs?.find(l => l.work_date === dateStr);
@@ -542,30 +557,26 @@ async function renderCalendar() {
         const day = document.createElement("div");
         day.className = "day";
         day.innerText = d;
-
-       // --- renderCalendar関数の中を探してください ---
+        day.style.position = "relative"; // ホバー用
 
         if (dayLog && dayLog.minutes > 0) {
-            // ★ここから「3」の内容を上書き
             const mins = dayLog.minutes;
+            // ★ 色の条件分岐
             if (mins >= 300) {
-                day.style.background = "#216e39"; // 5h以上：一番濃い緑
-                day.style.color = "white";        // 数字を白くして見やすく
+                day.style.background = "#216e39"; // 5h~
+                day.style.color = "white";
             } else if (mins >= 120) {
-                day.style.background = "#30a14e"; // 2h以上：中間の緑
+                day.style.background = "#30a14e"; // 2h~
                 day.style.color = "white";
             } else if (mins >= 30) {
-                day.style.background = "#40c463"; // 30分以上：普通の緑
+                day.style.background = "#40c463"; // 30m~
                 day.style.color = "black";
             } else {
-                day.style.background = "#9be9a8"; // 30分未満：一番薄い緑
+                day.style.background = "#9be9a8"; // 30m未満
                 day.style.color = "black";
             }
-            // ★ここまで
-
             day.title = `${(mins/60).toFixed(1)}時間`;
         } else {
-            // 記録がない日はグレーにする
             day.style.background = "#ebedf0";
             day.style.color = "#ccc";
         }
