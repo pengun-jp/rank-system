@@ -479,25 +479,26 @@ async function loadUserRecord(user) {
     .from("record")
     .select("*")
     .eq("user_id", user.id)
-    .maybeSingle(); // ← .single() を .maybeSingle() に変える！
+    .maybeSingle(); // ← ここを maybeSingle に変えるのがコツ！
 
   if (error) {
-    console.error("データ読み込み失敗:", error.message);
+    console.error("データ読み込みエラー:", error.message);
     return;
   }
 
   if (data) {
-    // データがある場合のみ反映
+    // データがある場合（既存ユーザー）
     totalHours = data.total_minutes / 60;
+    // ランキング用の秒数も同期させる
     liveTotalSeconds = data.total_minutes * 60;
     liveWeeklySeconds = data.weekly_minutes * 60;
     liveMonthlySeconds = data.monthly_minutes * 60;
-    updateDisplay();
+    
+    updateDisplay(); 
+    console.log("データを復旧しました！");
   } else {
-    console.log("新規ユーザーです。データを作成します。");
-    // データがない場合は0からスタート
-    totalHours = 0;
-    updateDisplay();
+    // データがない場合（新規ユーザー）
+    console.log("新規ユーザーのため、0からスタートします");
   }
 }
 async function signOut(){
