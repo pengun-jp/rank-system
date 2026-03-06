@@ -368,11 +368,22 @@ async function signIn(){
 async function signOut(){ await supabaseClient.auth.signOut(); location.reload(); }
 
 async function loadUserRecord(user) {
-    const { data } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
+    const { data, error } = await supabaseClient
+        .from("record")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
     if (data) {
+        // 分数を時間に変換して保持
         totalHours = data.total_minutes / 60;
-        updateDisplay();
+    } else {
+        totalHours = 0;
     }
+    
+    // ここで画面を最新状態にする！
+    updateDisplay();
+    renderCalendar();
 }
 
 async function showCurrentUser() {
@@ -552,11 +563,19 @@ function toggleRank(id) {
     const toggle = content.previousElementSibling;
     toggle.classList.toggle('open');
 }
-// 初期化
-showCurrentUser();
-updateDisplay();
-renderCalendar();
-updateRanking();
+// --- 初期化処理 ---
+async function init() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user) {
+        await showCurrentUser();
+        await loadUserRecord(user); // ここでデータを持ってきてupdateDisplayされる
+        await updateRanking();
+    } else {
+        updateDisplay(); // 未ログインでも一応0を表示
+    }
+}
+
+init(); // initを実行
 </script>
 </body>
 </html>
