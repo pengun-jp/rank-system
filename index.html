@@ -311,17 +311,14 @@ function confirmResetData(){
   }
 }
 function updateDisplay(){
-    if(points >= ranks[ranks.length-1].points){
-    currentRank = ranks[ranks.length-1];
-    nextRank = null;
-}
-    console.log("updateDisplay動いた", totalHours);
-    document.getElementById("totalHours").innerText = totalHours.toFixed(1);
 
-    let currentRank = ranks[0];
-    let nextRank = null;
+console.log("updateDisplay動いた", totalHours);
+document.getElementById("totalHours").innerText = totalHours.toFixed(1);
 
-   for(let i=0;i<ranks.length-1;i++){
+let currentRank = ranks[0];
+let nextRank = null;
+
+for(let i=0;i<ranks.length-1;i++){
     if(totalHours >= ranks[i].hours && totalHours < ranks[i+1].hours){
         currentRank = ranks[i];
         nextRank = ranks[i+1];
@@ -329,6 +326,10 @@ function updateDisplay(){
     }
 }
 
+if(totalHours >= ranks[ranks.length-1].hours){
+    currentRank = ranks[ranks.length-1];
+    nextRank = null;
+}
 if(totalHours >= ranks[ranks.length-1].hours){
     currentRank = ranks[ranks.length-1];
     nextRank = null;
