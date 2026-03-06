@@ -14,7 +14,7 @@ body {
     font-family: Arial, sans-serif;
 
     /* ★ ここに画像URLを入れる ★ */
-    background-image:https://sozaino.site/archives/10595
+    background-image: https://sozaino.site/archives/10595
     background-size: cover;          /* 画面いっぱいに広げる */
     background-position: center;     /* 画像の真ん中を表示 */
     background-attachment: fixed;    /* スクロールしても背景を動かさない */
@@ -117,10 +117,16 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
         <button class="danger" onclick="confirmResetData()">累計リセット</button>
     </div>
 
-    <div style="background:#f1f3f5; padding:15px; border-radius:10px; margin: 20px auto; max-width: 500px;">
-        <h3>アカウント</h3>
-        <input id="email" type="email" placeholder="メール" style="padding:8px;">
-        <input id="password" type="password" placeholder="パスワード" style="padding:8px;">
+  <div style="background:rgba(241, 243, 245, 0.9); padding:15px; border-radius:10px; margin: 20px auto; max-width: 500px; color: #333;">
+    <h3>アカウント</h3>
+    
+    <p style="font-size: 12px; color: #d63384; background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #ffc107; text-align: left; margin-bottom: 15px;">
+        <strong>【重要 / 注意事項】</strong><br>
+        ・Study Arenaはアカウント作成を強く推奨しています
+    </p>
+
+    <input id="email" type="email" placeholder="メール" style="padding:8px;">
+    <input id="password" type="password" placeholder="パスワード" style="padding:8px;">
         <div style="margin-top:10px;">
             <button onclick="signUp()">登録</button>
             <button onclick="signIn()">ログイン</button>
