@@ -7,8 +7,36 @@
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@500&display=swap" rel="stylesheet">
 
 <style>
-body { font-family: Arial; text-align: center; background: #fff; margin: 0; padding: 0; }
-.container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 20px; box-sizing: border-box; position: relative; }
+body {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    font-family: Arial, sans-serif;
+
+    /* ★ ここに画像URLを入れる ★ */
+    background-image:https://ja.pngtree.com/free-png-vectors/%E7%99%BD%E3%81%84%E8%83%8C%E6%99%AF%E3%81%AB%E5%88%86%E9%9B%A2%E3%81%95%E3%82%8C%E3%81%9F-3-d-%E3%81%AE%E6%9C%A8%E9%80%A0%E4%BD%8F%E5%AE%85%E3%83%A2%E3%83%87%E3%83%AB
+
+    background-size: cover;          /* 画面いっぱいに広げる */
+    background-position: center;     /* 画像の真ん中を表示 */
+    background-attachment: fixed;    /* スクロールしても背景を動かさない */
+    background-repeat: no-repeat;    /* 画像を繰り返さない */
+    min-height: 100vh;
+}
+
+/* 背景画像の上で文字を見やすくするための「半透明の板」の設定 */
+.container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative;
+    
+    /* ↓ 背景が暗い画像でも文字が読めるように、コンテンツの裏を少し白く透かします */
+    background: rgba(255, 255, 255, 0.8); 
+    min-height: 100vh;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
 button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; border-radius: 5px; border: 1px solid #ccc; background: #f8f9fa; }
 
 /* ステータス周り */
