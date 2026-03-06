@@ -168,10 +168,16 @@ const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 async function fetchNews() {
     const { data: news, error } = await supabaseClient.from('news').select('*').order('created_at', { ascending: false }).limit(5);
     const container = document.getElementById('newsContent');
+    const section = document.querySelector('.news-section'); // お知らせ枠全体
+
+    // エラーがあるか、お知らせが0件の場合は枠ごと消す
     if (error || !news || news.length === 0) {
-        container.innerHTML = `<div class="news-item"><span class="news-date">SYSTEM</span>Study Arenaへようこそ！\n今日も自分のペースで積み上げていきましょう。</div>`;
+        section.style.display = 'none'; 
         return;
     }
+
+    // データがある時だけ表示して中身を入れる
+    section.style.display = 'block';
     container.innerHTML = news.map(item => `
         <div class="news-item">
             <span class="news-date">📅 ${new Date(item.created_at).toLocaleDateString()}</span>${item.content}
