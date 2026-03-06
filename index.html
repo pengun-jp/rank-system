@@ -138,6 +138,7 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
 <div class="container">
     <h1>Rank Arena</h1>
 
+    <div id="streakDisplay" style="font-size: 20px; font-weight: bold; color: #ff4500; margin: 10px 0;"></div>
     <div style="position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 5px;">
         <button class="danger" onclick="confirmResetTimer()" style="font-size: 12px; padding: 5px 10px;">タイマーリセット</button>
         <button class="danger" onclick="confirmResetData()" style="font-size: 12px; padding: 5px 10px;">累計リセット</button>
@@ -290,29 +291,31 @@ async function addTestHours(){
     totalHours += 10; 
     updateDisplay(); 
     
-    // 【追加】日記帳（daily_logs）にも10時間分を記録する
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if(user) {
-        const todayStr = new Date().toLocaleDateString('sv-SE');
-        // 現在の今日の分数を確認して、そこに600分（10h）足す
-        const { data: currentLog } = await supabaseClient
-            .from("daily_logs")
-            .select("minutes")
-            .eq("user_id", user.id)
-            .eq("work_date", todayStr)
-            .maybeSingle();
-            
-        const currentMins = currentLog ? currentLog.minutes : 0;
+    if(!user) return;
 
-        await supabaseClient.from("daily_logs").upsert({
-            user_id: user.id,
-            work_date: todayStr,
-            minutes: currentMins + 600 
-        }, { onConflict: "user_id,work_date" });
-    }
-    
-    saveToSupabase(); 
-    renderCalendar(); // カレンダーを即更新
+    const todayStr = new Date().toLocaleDateString('sv-SE');
+    const totalMinutes = Math.round(totalHours * 60);
+
+    // 今日のログを取得して10時間(600分)プラス
+    const { data: currentLog } = await supabaseClient
+        .from("daily_logs").select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
+    const newDailyMins = (currentLog ? currentLog.minutes : 0) + 600;
+
+    await supabaseClient.from("daily_logs").upsert({
+        user_id: user.id, work_date: todayStr, minutes: newDailyMins
+    }, { onConflict: "user_id,work_date" });
+
+    // 累計も更新
+    const nickname = user.user_metadata?.nickname || user.email.split('@')[0];
+    await supabaseClient.from("record").upsert({
+        user_id: user.id, username: String(nickname), total_minutes: totalMinutes, updated_at: new Date().toISOString()
+    }, { onConflict: "user_id" });
+
+    // 呼び出し順を整理（saveToSupabaseは呼ばない！）
+    updateRanking();
+    renderCalendar(); 
+    alert("10時間ブースト完了！🔥");
 }
 function confirmResetTimer(){ if(confirm("タイマーをリセットしますか？")){ remainingSeconds=0; updateTimerDisplay(); clearInterval(timerInterval); timerInterval=null; }}
 function confirmResetData(){ if(confirm("累計をリセットしますか？")){ totalHours=0; updateDisplay(); }}
@@ -410,68 +413,33 @@ async function saveToSupabase() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
+    // 今回追加する分数（基本は30分、もしタイマーをいじれるならその値。現状は0.5h加算なので30分）
+    const addedMinutes = 30; 
     const totalMinutes = Math.round(totalHours * 60);
-    const todayStr = new Date().toLocaleDateString('sv-SE'); // "2026-03-06" 形式
+    const todayStr = new Date().toLocaleDateString('sv-SE');
 
-    // 1. 日ごとの記録 (daily_logs) を更新
-    // 既存の記録があるか確認
-    const { data: logData } = await supabaseClient
-        .from("daily_logs")
-        .select("minutes")
-        .eq("user_id", user.id)
-        .eq("work_date", todayStr)
-        .maybeSingle();
+    // 日記帳(daily_logs)の更新：加算ロジック
+    const { data: currentLog } = await supabaseClient
+        .from("daily_logs").select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
+    const newDailyMins = (currentLog ? currentLog.minutes : 0) + addedMinutes;
 
-    if (logData) {
-        // 今日すでに記録があれば、上書き（最新の合計分数との差分を考えるより、
-        // 累計から計算して「今日の分」を更新するロジックが安全）
-        // ここでは簡易的にupsertを使用
-    }
+    await supabaseClient.from("daily_logs").upsert({
+        user_id: user.id,
+        work_date: todayStr,
+        minutes: newDailyMins
+    }, { onConflict: "user_id,work_date" });
 
-    // 2. recordテーブル（累計とランキング用）の更新
+    // 累計(record)の更新
     const nickname = user.user_metadata?.nickname || user.email.split('@')[0];
-    
-    // 連続日数の計算（昨日データがあるかチェック）
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toLocaleDateString('sv-SE');
-    
-    const { data: yLog } = await supabaseClient
-        .from("daily_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("work_date", yesterdayStr)
-        .maybeSingle();
-
-    // 連続日数の取得（本来はrecordテーブルに持たせるのが楽）
-    const { data: currentRec } = await supabaseClient.from("record").select("streak_days").eq("user_id", user.id).maybeSingle();
-    let newStreak = currentRec?.streak_days || 0;
-    
-    // 昨日やっていれば継続、今日初めてなら+1（簡易版）
-    if (yLog) { /* 継続処理 */ }
-
-    const record = {
+    await supabaseClient.from("record").upsert({
         user_id: user.id,
         username: String(nickname),
         total_minutes: totalMinutes,
         updated_at: new Date().toISOString()
-    };
-
-    // recordの保存
-    await supabaseClient.from("record").upsert(record, { onConflict: "user_id" });
-
-    // daily_logsの保存（今日やった分を記録）
-    // 本来は今日の開始時と終了時の差分を記録しますが、
-    // ここでは「累計が増えた分」をdailyに反映させるロジックが必要です。
-    // ひとまず record の更新と同時にログも入れる
-    await supabaseClient.from("daily_logs").upsert({
-        user_id: user.id,
-        work_date: todayStr,
-        minutes: 30 // ここはタイマーが完了した時の追加分を入れる
-    }, { onConflict: "user_id,work_date" });
+    }, { onConflict: "user_id" });
 
     updateRanking();
-    renderCalendar(); // 保存後にカレンダーを再描画！
+    renderCalendar();
 }
 
 async function updateRanking(){
@@ -508,8 +476,6 @@ async function renderCalendar() {
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    
-    // ラベルの更新（エラー防止のため存在確認）
     const monthLabel = document.getElementById("monthLabel");
     if (monthLabel) monthLabel.innerText = `${year}年${month + 1}月`;
     
@@ -517,68 +483,57 @@ async function renderCalendar() {
     if (!calendar) return;
     calendar.innerHTML = "";
 
-    // Supabaseから今月のログを取得
-    const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-    const endDate = `${year}-${String(month + 1).padStart(2, '0')}-31`;
+    // 取得範囲を広めに（ストリーク計算のため先月分も少し取るのが理想ですが、まずは今月分で計算）
+    const { data: logs } = await supabaseClient.from("daily_logs").select("*").eq("user_id", user.id);
 
-    const { data: logs, error } = await supabaseClient
-        .from("daily_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("work_date", startDate)
-        .lte("work_date", endDate);
+    // 今月合計の表示
+    const thisMonthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const thisMonthLogs = logs?.filter(l => l.work_date.startsWith(thisMonthPrefix));
+    const totalMins = thisMonthLogs ? thisMonthLogs.reduce((sum, l) => sum + l.minutes, 0) : 0;
+    if (document.getElementById("monthTotal")) document.getElementById("monthTotal").innerText = `今月合計: ${(totalMins/60).toFixed(1)} h`;
 
-    if (error) {
-        console.error("カレンダー取得エラー:", error);
+    // --- ストリーク計算 ---
+    let streak = 0;
+    let check = new Date(); // 今日から遡る
+    const logMap = new Set(logs?.filter(l => l.minutes > 0).map(l => l.work_date));
+
+    while (true) {
+        const dStr = check.toLocaleDateString('sv-SE');
+        if (logMap.has(dStr)) {
+            streak++;
+            check.setDate(check.getDate() - 1);
+        } else {
+            // 今日まだ記録がない場合は昨日からチェックを継続する猶予
+            if (streak === 0 && dStr === new Date().toLocaleDateString('sv-SE')) {
+                check.setDate(check.getDate() - 1);
+                continue;
+            }
+            break;
+        }
     }
+    const streakEl = document.getElementById("streakDisplay");
+    if (streakEl) streakEl.innerText = streak > 0 ? `🔥 ${streak}日連続中！` : `🌵 制作を開始しよう`;
 
-    // ★ 今月合計の計算
-    const totalMinutesThisMonth = logs ? logs.reduce((sum, log) => sum + log.minutes, 0) : 0;
-    const totalHoursThisMonth = (totalMinutesThisMonth / 60).toFixed(1);
-    const monthTotalEl = document.getElementById("monthTotal");
-    if (monthTotalEl) {
-        monthTotalEl.innerText = `今月合計: ${totalHoursThisMonth} h`;
-    }
-
+    // カレンダー描画（既存のロジック）
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 0; i < firstDay; i++) calendar.appendChild(document.createElement("div"));
 
-    // 空白の追加
-    for (let i = 0; i < firstDay; i++) {
-        const spacer = document.createElement("div");
-        calendar.appendChild(spacer);
-    }
-
-    // 日付の描画
     for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayLog = logs?.find(l => l.work_date === dateStr);
-        
+        const dayLog = thisMonthLogs?.find(l => l.work_date === dateStr);
         const day = document.createElement("div");
         day.className = "day";
         day.innerText = d;
-        day.style.position = "relative"; // ホバー用
-
         if (dayLog && dayLog.minutes > 0) {
             const mins = dayLog.minutes;
-            // ★ 色の条件分岐
-            if (mins >= 300) {
-                day.style.background = "#216e39"; // 5h~
-                day.style.color = "white";
-            } else if (mins >= 120) {
-                day.style.background = "#30a14e"; // 2h~
-                day.style.color = "white";
-            } else if (mins >= 30) {
-                day.style.background = "#40c463"; // 30m~
-                day.style.color = "black";
-            } else {
-                day.style.background = "#9be9a8"; // 30m未満
-                day.style.color = "black";
-            }
-            day.title = `${(mins/60).toFixed(1)}時間`;
+            if (mins >= 300) { day.style.background = "#216e39"; day.style.color = "white"; }
+            else if (mins >= 120) { day.style.background = "#30a14e"; day.style.color = "white"; }
+            else if (mins >= 30) { day.style.background = "#40c463"; }
+            else { day.style.background = "#9be9a8"; }
+            day.title = `${(mins/60).toFixed(1)}h`;
         } else {
             day.style.background = "#ebedf0";
-            day.style.color = "#ccc";
         }
         calendar.appendChild(day);
     }
