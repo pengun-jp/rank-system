@@ -169,7 +169,7 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 <body>
 <div class="container">
 
-<h1>制作ランクシステム</h1>
+<h1>Study Arena</h1>
 
 <div style="margin:20px;">
   <h3>アカウント</h3>
@@ -196,7 +196,7 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 
   <div class="center-buttons">
     <button onclick="addTime()">+30分</button>
-    <button onclick="startTimer()">スタート/一時停止</button>
+    <button onclick="startLiveTimer()">スタート/一時停止</button>
   </div>
 
   <div class="right-buttons">
@@ -502,37 +502,56 @@ async function showCurrentUser() {
 }
 console.log("Supabase接続成功:", supabaseClient);
 
-let liveTotalSeconds=0, liveWeeklySeconds=0, liveMonthlySeconds=0, liveCounter=0;
+let liveTotalSeconds = 0, liveWeeklySeconds = 0, liveMonthlySeconds = 0, liveCounter = 0;
+let liveInterval = null; // 追加：タイマー管理用
 
-async function tickTimer(){
+// スタート/一時停止式
+function startLiveTimer() {
+  if (liveInterval) {
+    // すでに動いていたら停止
+    clearInterval(liveInterval);
+    liveInterval = null;
+    return;
+  }
 
+  // タイマー開始
+  liveInterval = setInterval(async () => {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if(!user) return; // ログインしてないなら保存しない
+    if (!user) return; // ログインしていなければ中断
 
+    // 秒数を加算
     liveTotalSeconds++;
     liveWeeklySeconds++;
     liveMonthlySeconds++;
     liveCounter++;
 
-    if(liveCounter>=60){
-        liveCounter=0;
-
-        let record={
-            user_id:user.id,
-            username:user.email,
-            total_minutes:Math.floor(liveTotalSeconds/60),
-            weekly_minutes:Math.floor(liveWeeklySeconds/60),
-            monthly_minutes:Math.floor(liveMonthlySeconds/60)
-        };
-
-        await supabaseClient
-            .from("record")
-            .upsert(record,{ onConflict:"user_id" });
-
-        updateRanking();
+    // 1分ごとにDBに保存
+    if (liveCounter >= 60) {
+      liveCounter = 0;
+      await saveRecord(user);
     }
+
+    // タイマー表示も更新
+    updateTimerDisplay();
+  }, 1000);
 }
-function startLiveTimer(){ setInterval(tickTimer,1000); }
+
+// DB保存用に関数を分ける
+async function saveRecord(user) {
+  const record = {
+    user_id: user.id,
+    username: user.user_metadata?.nickname || user.email,
+    total_minutes: Math.floor(liveTotalSeconds / 60),
+    weekly_minutes: Math.floor(liveWeeklySeconds / 60),
+    monthly_minutes: Math.floor(liveMonthlySeconds / 60)
+  };
+
+  await supabaseClient
+    .from("record")
+    .upsert(record, { onConflict: "user_id" });
+
+  updateRanking();
+}
 function resetIfNeeded(record){
     const now=new Date();
     const monday=new Date(now); monday.setDate(now.getDate()-now.getDay()+1); monday.setHours(0,0,0,0);
@@ -581,7 +600,7 @@ async function fetchRanking(column){
 function renderRanking(elementId,data,column){
     
     const div=document.getElementById(elementId);
-    div.innerHTML="";
+    div.innerHTML += `<p>${medal}${index+1}位 ${user.username || user.email} - ${user[column]}分</p>`;
     data.forEach((user,index)=>{
         let medal="";
         if(index===0) medal="🥇 "; else if(index===1) medal="🥈 "; else if(index===2) medal="🥉 ";
@@ -589,7 +608,6 @@ function renderRanking(elementId,data,column){
     });
 }
 
-startLiveTimer();
 </script>
 </body>
 </html>
