@@ -320,45 +320,42 @@ function updateDisplay(){
     for(let i=0;i<ranks.length;i++){
         if(totalHours >= ranks[i].hours){
             currentRank = ranks[i];
-            nextRank = ranks[i+1]; // 最後のランクでは undefined
+            nextRank = ranks[i+1];
         }
     }
 
-    // ランク表示
     const rankEl = document.getElementById("rank");
     rankEl.innerText = currentRank.name;
     rankEl.style.color = currentRank.color;
     rankEl.style.webkitTextStroke = "0.6px " + currentRank.stroke;
 
-    // 次のランクまでの表示
     if(nextRank){
         const remaining = nextRank.hours - totalHours;
         document.getElementById("nextRank").innerText = remaining.toFixed(1);
 
-        // パーセンテージ計算
-        const progress = totalHours - currentRank.hours;
-        const range = nextRank.hours - currentRank.hours;
-        var percent = (progress / range) * 100;
-        percent = Math.min(100, percent);
-    } else {
+const range = nextRank.hours - currentRank.hours;
+const progress = totalHours - currentRank.hours;
+const percent = (progress / range) * 100;
+
+const bar = document.getElementById("progressBar");
+bar.style.width = percent + "%";
+
+/* ランク色に変更 */
+bar.style.background = currentRank.color;
+bar.style.color = currentRank.color;
+bar.classList.add("glow");
+bar.style.boxShadow =
+  "0 0 8px " + currentRank.color + ", inset 0 0 10px rgba(255,255,255,0.6)";
+bar.style.color = currentRank.color; // ← 追加（これ重要）
+
+/* %表示 */
+document.getElementById("progressText").innerText =
+  percent.toFixed(1) + "%";
+
+    }else{
         document.getElementById("nextRank").innerText = "達成済み";
-        var percent = 100; // 最終ランクは100%
+        document.getElementById("progressBar").style.width = "100%";
     }
-
-    // ゲージ更新
-    const bar = document.getElementById("progressBar");
-    const glow = document.getElementById("progressGlow");
-    const text = document.getElementById("progressText");
-
-    bar.style.width = percent + "%";
-    bar.style.background = currentRank.color;
-    bar.style.boxShadow =
-        "0 0 8px " + currentRank.color + ", inset 0 0 10px rgba(255,255,255,0.6)";
-
-    glow.style.width = percent + "%";
-    glow.style.background = currentRank.color;
-
-    text.innerText = percent.toFixed(1) + "%";
 }
 
 // カレンダー
@@ -529,4 +526,3 @@ startLiveTimer();
 </script>
 </body>
 </html>
-a
