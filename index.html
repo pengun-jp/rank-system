@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Rank Arena</title>
+<title>Study Arena</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@500&display=swap" rel="stylesheet">
 
@@ -136,8 +136,11 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
 
 <body>
 <div class="container">
-    <h1>Rank Arena</h1>
+    <h1>Study Arena</h1>
 
+<div id="streakDisplay" style="font-size: 24px; font-weight: bold; color: #ff4500; margin: 10px 0; font-family: 'Orbitron', sans-serif;">
+    🌵 準備完了
+</div>
     <div id="streakDisplay" style="font-size: 20px; font-weight: bold; color: #ff4500; margin: 10px 0;"></div>
     <div style="position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 5px;">
         <button class="danger" onclick="confirmResetTimer()" style="font-size: 12px; padding: 5px 10px;">タイマーリセット</button>
@@ -503,25 +506,33 @@ async function renderCalendar() {
     const totalMins = thisMonthLogs ? thisMonthLogs.reduce((sum, l) => sum + l.minutes, 0) : 0;
     if (document.getElementById("monthTotal")) document.getElementById("monthTotal").innerText = `今月合計: ${(totalMins/60).toFixed(1)} h`;
 
-    // --- ストリーク計算 ---
+   // --- ストリーク計算ここから ---
     let streak = 0;
-    let check = new Date(); // 今日から遡る
-    const logMap = new Set(logs?.filter(l => l.minutes > 0).map(l => l.work_date));
+    let checkDate = new Date(); // 今日から遡る
+    // 記録がある日をセットにする（計算しやすくするため）
+    const activeDays = new Set(logs?.filter(l => l.minutes > 0).map(l => l.work_date));
 
     while (true) {
-        const dStr = check.toLocaleDateString('sv-SE');
-        if (logMap.has(dStr)) {
+        const dateStr = checkDate.toLocaleDateString('sv-SE');
+        if (activeDays.has(dateStr)) {
             streak++;
-            check.setDate(check.getDate() - 1);
+            checkDate.setDate(checkDate.getDate() - 1);
         } else {
-            // 今日まだ記録がない場合は昨日からチェックを継続する猶予
-            if (streak === 0 && dStr === new Date().toLocaleDateString('sv-SE')) {
-                check.setDate(check.getDate() - 1);
+            // 「今日」まだやっていないだけなら、昨日の分からチェックを続ける（猶予）
+            if (streak === 0 && dateStr === new Date().toLocaleDateString('sv-SE')) {
+                checkDate.setDate(checkDate.getDate() - 1);
                 continue;
             }
-            break;
+            break; // 途切れたら終了
         }
     }
+
+    // 画面に反映
+    const streakEl = document.getElementById("streakDisplay");
+    if (streakEl) {
+        streakEl.innerText = streak > 0 ? `🔥 ${streak}日連続中！` : `🌵 記録を始めよう`;
+    }
+    // --- ストリーク計算ここまで ---
     const streakEl = document.getElementById("streakDisplay");
     if (streakEl) streakEl.innerText = streak > 0 ? `🔥 ${streak}日連続中！` : `🌵 制作を開始しよう`;
 
@@ -568,10 +579,11 @@ async function init() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (user) {
         await showCurrentUser();
-        await loadUserRecord(user); // ここでデータを持ってきてupdateDisplayされる
+        await loadUserRecord(user); 
+        await renderCalendar(); // ここでカレンダーと一緒にストリークも計算される！
         await updateRanking();
     } else {
-        updateDisplay(); // 未ログインでも一応0を表示
+        updateDisplay();
     }
 }
 
