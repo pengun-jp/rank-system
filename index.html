@@ -364,10 +364,22 @@ document.getElementById("progressText").innerText =
   percent.toFixed(1) + "%";
 
    }else{
+
+    const bar = document.getElementById("progressBar");
+
     document.getElementById("nextRank").innerText = "達成済み";
-    document.getElementById("progressBar").style.width = "100%";
+
+    bar.style.width = "100%";
+
+    /* ★ここ追加 */
+    bar.style.background = currentRank.color;
+
+    bar.style.boxShadow =
+      "0 0 8px " + currentRank.color +
+      ", inset 0 0 10px rgba(255,255,255,0.6)";
+
     document.getElementById("progressText").innerText = "100%";
-　　}
+   }
 }
 
 // カレンダー
