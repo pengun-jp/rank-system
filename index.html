@@ -311,6 +311,10 @@ function confirmResetData(){
   }
 }
 function updateDisplay(){
+    if(points >= ranks[ranks.length-1].points){
+    currentRank = ranks[ranks.length-1];
+    nextRank = null;
+}
     console.log("updateDisplay動いた", totalHours);
     document.getElementById("totalHours").innerText = totalHours.toFixed(1);
 
