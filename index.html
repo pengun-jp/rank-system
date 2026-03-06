@@ -549,8 +549,7 @@ async function fetchRanking(column){
     const { data } = await supabaseClient.from("record").select("*").order(column,{ascending:false}).limit(100);
     return data||[];
 }
-function renderRanking(elementId,data,column){
-    async function updateMyRank(){
+async function updateMyRank(){
 
     const { data: { user } } = await supabaseClient.auth.getUser();
     if(!user) return;
@@ -567,6 +566,8 @@ function renderRanking(elementId,data,column){
     document.getElementById("myRank").innerText =
         "あなたの順位: " + rank + "位 / " + data.length + "人";
 }
+function renderRanking(elementId,data,column){
+    
     const div=document.getElementById(elementId);
     div.innerHTML="";
     data.forEach((user,index)=>{
