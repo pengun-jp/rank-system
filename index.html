@@ -365,9 +365,15 @@ document.getElementById("progressText").innerText =
 
    }else{
     document.getElementById("nextRank").innerText = "達成済み";
-    document.getElementById("progressBar").style.width = "100%";
+
+    const bar = document.getElementById("progressBar");
+
+    bar.style.width = "100%";
+    bar.style.background = currentRank.color;  // ←追加
+    bar.style.boxShadow = "0 0 8px " + currentRank.color; // ←追加
+
     document.getElementById("progressText").innerText = "100%";
-　　}
+   }
 }
 
 // カレンダー
