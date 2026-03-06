@@ -58,11 +58,25 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
 
 /* スマホ用レスポンシブ設定 */
 @media (max-width: 768px) {
-  .status-bar { position: static; text-align: center; margin: 10px 0; } /* スマホでは中央に戻す */
-  .button-area { height: auto; display: flex; flex-direction: column; gap: 10px; align-items: center; position: static; transform: none; }
-  .center-buttons, .right-buttons, .test-button { position: static; transform: none; width: 100%; justify-content: center; }
-  #timer { font-size: 40px; }
-  .ranking-box { width: 90%; }
+    /* タイトルと重ならないように、右上の固定を解除する */
+    .danger-zone, [style*="position: absolute; top: 20px;"] {
+        position: static !important; /* 固定を解除 */
+        display: flex !important;
+        flex-direction: row !important; /* 横並びに */
+        justify-content: center !important;
+        gap: 10px;
+        margin: 10px 0;
+    }
+
+    /* 左上のテストボタンもタイトルの下に持ってくる */
+    button[onclick="addTestHours()"] {
+        position: static !important;
+        display: inline-block;
+        margin: 5px auto;
+    }
+
+    #timer { font-size: 40px; }
+    .ranking-box { width: 95%; }
 }
 /* ランキングの親容器 */
 .ranking-section {
