@@ -101,10 +101,11 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
 
 /* 開いている時の状態 */
 .ranking-content.open {
-    max-height: 1000px; /* 十分な高さを確保 */
+    max-height: 400px; /* 箱の最大高さを決める（スマホ画面の半分くらい） */
+    overflow-y: auto;  /* 中身がはみ出たらスクロールバーを出す */
     margin-bottom: 20px;
+    border: 1px solid #eee; /* どこまでがランキングか分かりやすくする */
 }
-
 /* 矢印アイコンの向き */
 .arrow {
     transition: transform 0.3s;
@@ -404,7 +405,7 @@ async function updateRanking(){
     const { data: { user } } = await supabaseClient.auth.getUser();
 
     for(let t of types) {
-        const { data } = await supabaseClient.from("record").select("*").order(t.col, {ascending:false}).limit(10);
+        const { data } = await supabaseClient.from("record").select("*").order(t.col, {ascending:false}).limit(100);
         const div = document.getElementById(t.id);
         div.innerHTML = "";
         data?.forEach((r, i) => {
