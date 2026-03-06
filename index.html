@@ -136,11 +136,14 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
 
 <body>
 <div class="container">
-    <h1>Study Arena</h1>
+   <h1>Study Arena</h1>
 
 <div id="streakDisplay" style="font-size: 24px; font-weight: bold; color: #ff4500; margin: 10px 0; font-family: 'Orbitron', sans-serif;">
     🌵 準備完了
 </div>
+
+<p>累計時間: <span id="totalHours" style="font-size: 32px; font-weight: bold;">0</span> h</p>
+<p id="totalHoursDetail" style="margin-top:-15px; margin-bottom:15px; color:#666; font-size:14px;"></p>
     <div id="streakDisplay" style="font-size: 20px; font-weight: bold; color: #ff4500; margin: 10px 0;"></div>
     <div style="position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 5px;">
         <button class="danger" onclick="confirmResetTimer()" style="font-size: 12px; padding: 5px 10px;">タイマーリセット</button>
@@ -323,16 +326,30 @@ async function addTestHours(){
 function confirmResetTimer(){ if(confirm("タイマーをリセットしますか？")){ remainingSeconds=0; updateTimerDisplay(); clearInterval(timerInterval); timerInterval=null; }}
 function confirmResetData(){ if(confirm("累計をリセットしますか？")){ totalHours=0; updateDisplay(); }}
 
-function updateDisplay(){
-    document.getElementById("totalHours").innerText = totalHours.toFixed(1);
+function updateDisplay() {
+    // 画面の「🔥 5日連続」から数字の「5」だけ取り出す
+    const streakText = document.getElementById("streakDisplay").innerText;
+    const streak = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
+    const multiplier = getBonusMultiplier(streak);
+    
+    // totalHours（DBの値）から逆算して「実時間」を出す
+    const totalWithBonus = totalHours; 
+    const rawHours = totalWithBonus / multiplier;
+    const bonusHours = totalWithBonus - rawHours;
+
+    document.getElementById("totalHours").innerText = totalWithBonus.toFixed(1);
+    document.getElementById("totalHoursDetail").innerText = 
+        `(実質努力: ${rawHours.toFixed(1)}h + 🎁ボーナス: ${bonusHours.toFixed(1)}h)`;
+
+    // ランク判定（ボーナス込みで判定）
     let currentRank = ranks[0];
     let nextRank = null;
-    for(let i=0;i<ranks.length-1;i++){
-        if(totalHours >= ranks[i].hours && totalHours < ranks[i+1].hours){
+    for(let i=0; i<ranks.length-1; i++){
+        if(totalWithBonus >= ranks[i].hours && totalWithBonus < ranks[i+1].hours){
             currentRank = ranks[i]; nextRank = ranks[i+1]; break;
         }
     }
-    if(totalHours >= ranks[ranks.length-1].hours) currentRank = ranks[ranks.length-1];
+    if(totalWithBonus >= ranks[ranks.length-1].hours) currentRank = ranks[ranks.length-1];
 
     const rankEl = document.getElementById("rank");
     rankEl.innerText = currentRank.name;
@@ -341,9 +358,8 @@ function updateDisplay(){
 
     const bar = document.getElementById("progressBar");
     if(nextRank){
-        const remaining = nextRank.hours - totalHours;
-        document.getElementById("nextRank").innerText = remaining.toFixed(1);
-        let percent = ((totalHours - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
+        document.getElementById("nextRank").innerText = (nextRank.hours - totalWithBonus).toFixed(1);
+        let percent = ((totalWithBonus - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
         bar.style.width = percent + "%";
         bar.style.background = currentRank.color;
         document.getElementById("progressText").innerText = Math.floor(percent) + "%";
@@ -470,9 +486,23 @@ async function updateRanking(){
         const { data } = await supabaseClient.from("record").select("*").order(t.col, {ascending:false}).limit(100);
         const div = document.getElementById(t.id);
         div.innerHTML = "";
+
         data?.forEach((r, i) => {
             let m = (i===0)?"🥇 ":(i===1)?"🥈 ":(i===2)?"🥉 ":"";
-            div.innerHTML += `<p style="font-size:14px; border-bottom:1px solid #eee; padding:5px;">${m}${i+1}位 ${r.username} - ${Math.floor(r[t.col]/60)}h ${r[t.col]%60}m</p>`;
+            const totalMins = r[t.col] || 0;
+            
+            // 各ユーザーの倍率（簡易的に全ユーザー共通計算）
+            const uStreak = r.streak_days || 0; // DBに保存されている場合
+            const uMult = getBonusMultiplier(uStreak);
+            const rawMins = Math.round(totalMins / uMult);
+            const bonusMins = totalMins - rawMins;
+
+            div.innerHTML += `
+                <div style="font-size:13px; border-bottom:1px solid #eee; padding:5px; text-align:left;">
+                    ${m}${i+1}位 ${r.username}<br>
+                    <span style="font-weight:bold; color:#0d6efd;">合計: ${Math.floor(totalMins/60)}h ${totalMins%60}m</span>
+                    <span style="font-size:11px; color:#666;"> (実:${Math.floor(rawMins/60)}h + 🎁:${Math.floor(bonusMins/60)}h)</span>
+                </div>`;
         });
         
         if(user) {
@@ -531,6 +561,7 @@ async function renderCalendar() {
     const streakEl = document.getElementById("streakDisplay");
     if (streakEl) {
         streakEl.innerText = streak > 0 ? `🔥 ${streak}日連続中！` : `🌵 記録を始めよう`;
+        updateDisplay(); // ←これを追加
     }
     // --- ストリーク計算ここまで ---
     const streakEl = document.getElementById("streakDisplay");
@@ -562,6 +593,13 @@ async function renderCalendar() {
 }
 
 let currentDate = new Date();
+// ストリークに応じた倍率を返す
+function getBonusMultiplier(streak) {
+    if (streak >= 14) return 1.2; // 20%増
+    if (streak >= 7)  return 1.1; // 10%増
+    if (streak >= 3)  return 1.05; // 5%増
+    return 1.0; // ボーナスなし
+}
 function changeMonth(offset){ currentDate.setMonth(currentDate.getMonth()+offset); renderCalendar(); }
 
 // ランキングの開閉を制御する関数
@@ -574,6 +612,7 @@ function toggleRank(id) {
     const toggle = content.previousElementSibling;
     toggle.classList.toggle('open');
 }
+
 // --- 初期化処理 ---
 async function init() {
     const { data: { user } } = await supabaseClient.auth.getUser();
