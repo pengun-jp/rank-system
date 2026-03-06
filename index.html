@@ -229,10 +229,15 @@ button { padding: 8px 18px; font-size: 16px; margin: 5px; }
 
 <div class="ranking-container">
 
-  <div class="ranking-box">
-    <h2>総合ランキング</h2>
-    <div id="totalRank"></div>
-  </div>
+<div class="ranking-box">
+  <h2>総合ランキング</h2>
+
+  <p id="myRank" style="font-weight:bold;color:#0d6efd;">
+    あなたの順位: -
+  </p>
+
+  <div id="totalRank"></div>
+</div>
 
   <div class="ranking-box">
     <h2>今月のランキング</h2>
@@ -533,15 +538,35 @@ async function updateRanking(){
     const totalRank=await fetchRanking("total_minutes");
     const weekRank=await fetchRanking("weekly_minutes");
     const monthRank=await fetchRanking("monthly_minutes");
+    
     renderRanking("totalRank",totalRank,"total_minutes");
     renderRanking("weekRank",weekRank,"weekly_minutes");
     renderRanking("monthRank",monthRank,"monthly_minutes");
+
+    updateMyRank();
 }
 async function fetchRanking(column){
     const { data } = await supabaseClient.from("record").select("*").order(column,{ascending:false}).limit(100);
     return data||[];
 }
 function renderRanking(elementId,data,column){
+    async function updateMyRank(){
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if(!user) return;
+
+    const { data } = await supabaseClient
+        .from("record")
+        .select("*")
+        .order("total_minutes",{ascending:false});
+
+    if(!data) return;
+
+    const rank = data.findIndex(u => u.user_id === user.id) + 1;
+
+    document.getElementById("myRank").innerText =
+        "あなたの順位: " + rank + "位 / " + data.length + "人";
+}
     const div=document.getElementById(elementId);
     div.innerHTML="";
     data.forEach((user,index)=>{
