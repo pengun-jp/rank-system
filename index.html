@@ -96,17 +96,23 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
 
     <div class="ranking-section">
         <h2>🏆 ランキング</h2>
-        <div class="ranking-toggle" onclick="toggleRank('totalContent')">総合ランキング <span class="arrow">▼</span></div>
-        <div id="totalContent" class="ranking-content"><div id="totalRank"></div><p id="myRankTotal" style="padding:10px; font-weight:bold; color:#0d6efd;"></p></div>
         
         <div class="ranking-toggle" onclick="toggleRank('dailyContent')">今日のランキング <span class="arrow">▼</span></div>
         <div id="dailyContent" class="ranking-content"><div id="dailyRank"></div><p id="myRankDaily" style="padding:10px; font-weight:bold; color:#0d6efd;"></p></div>
+
+        <div class="ranking-toggle" onclick="toggleRank('weekContent')">今週のランキング <span class="arrow">▼</span></div>
+        <div id="weekContent" class="ranking-content"><div id="weekRank"></div><p id="myRankWeek" style="padding:10px; font-weight:bold; color:#0d6efd;"></p></div>
+
+        <div class="ranking-toggle" onclick="toggleRank('monthContent')">今月のランキング <span class="arrow">▼</span></div>
+        <div id="monthContent" class="ranking-content"><div id="monthRank"></div><p id="myRankMonth" style="padding:10px; font-weight:bold; color:#0d6efd;"></p></div>
+
+        <div class="ranking-toggle" onclick="toggleRank('totalContent')">総合ランキング <span class="arrow">▼</span></div>
+        <div id="totalContent" class="ranking-content"><div id="totalRank"></div><p id="myRankTotal" style="padding:10px; font-weight:bold; color:#0d6efd;"></p></div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// --- 復活：18段階フルランクデータ ---
 const ranks = [
     { name:"ブロンズ I", hours:0, color:"#ff9900", stroke:"#cc6600" },
     { name:"ブロンズ II", hours:4, color:"#ff9900", stroke:"#cc6600" },
@@ -176,14 +182,11 @@ function updateDisplay() {
     const streakText = document.getElementById("streakDisplay").innerText;
     const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
     const multiplier = getBonusMultiplier(streakNum);
-    
     const totalWithBonus = totalHours; 
     const rawHours = totalWithBonus / multiplier;
     const bonusHours = totalWithBonus - rawHours;
-
     document.getElementById("totalHours").innerText = totalWithBonus.toFixed(1);
     document.getElementById("totalHoursDetail").innerText = `(実質努力: ${rawHours.toFixed(1)}h + 🎁ボーナス: ${bonusHours.toFixed(1)}h)`;
-
     let currentRank = ranks[0], nextRank = null;
     for(let i=0; i<ranks.length-1; i++){
         if(totalWithBonus >= ranks[i].hours && totalWithBonus < ranks[i+1].hours){
@@ -191,22 +194,16 @@ function updateDisplay() {
         }
     }
     if(totalWithBonus >= ranks[ranks.length-1].hours) currentRank = ranks[ranks.length-1];
-
     const rankEl = document.getElementById("rank");
-    rankEl.innerText = currentRank.name;
-    rankEl.style.color = currentRank.color;
-    rankEl.style.webkitTextStroke = "0.6px " + currentRank.stroke;
-
+    rankEl.innerText = currentRank.name; rankEl.style.color = currentRank.color; rankEl.style.webkitTextStroke = "0.6px " + currentRank.stroke;
     const bar = document.getElementById("progressBar");
     if(nextRank){
         document.getElementById("nextRank").innerText = (nextRank.hours - totalWithBonus).toFixed(1);
         let percent = ((totalWithBonus - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
-        bar.style.width = percent + "%";
-        bar.style.background = currentRank.color;
+        bar.style.width = percent + "%"; bar.style.background = currentRank.color;
         document.getElementById("progressText").innerText = Math.floor(percent) + "%";
     } else {
-        document.getElementById("nextRank").innerText = "MAX";
-        bar.style.width = "100%";
+        document.getElementById("nextRank").innerText = "MAX"; bar.style.width = "100%";
         document.getElementById("progressText").innerText = "100%";
     }
 }
@@ -226,10 +223,9 @@ async function signOut(){ await supabaseClient.auth.signOut(); location.reload()
 async function updateNickname() {
     const name = document.getElementById("newNickname").value;
     if(!name) return;
-    await supabaseClient.auth.updateUser({ data: { nickname: name } });
     const { data: { user } } = await supabaseClient.auth.getUser();
     await supabaseClient.from("record").upsert({ user_id: user.id, username: name }, { onConflict: "user_id" });
-    location.reload();
+    alert("名前を変更しました"); location.reload();
 }
 
 async function saveToSupabase() {
@@ -242,8 +238,14 @@ async function saveToSupabase() {
     updateRanking(); renderCalendar();
 }
 
+// --- ランキング：4種類復活 ---
 async function updateRanking(){
-    const types = [{ col: "total_minutes", id: "totalRank", my: "myRankTotal" }, { col: "daily_minutes", id: "dailyRank", my: "myRankDaily" }];
+    const types = [
+        { col: "daily_minutes", id: "dailyRank", my: "myRankDaily" },
+        { col: "weekly_minutes", id: "weekRank", my: "myRankWeek" },
+        { col: "monthly_minutes", id: "monthRank", my: "myRankMonth" },
+        { col: "total_minutes", id: "totalRank", my: "myRankTotal" }
+    ];
     const { data: { user } } = await supabaseClient.auth.getUser();
     for(let t of types) {
         const { data } = await supabaseClient.from("record").select("*").order(t.col, {ascending:false}).limit(10);
@@ -270,8 +272,6 @@ async function renderCalendar() {
     const year = currentDate.getFullYear(), month = currentDate.getMonth();
     document.getElementById("monthLabel").innerText = `${year}年${month + 1}月`;
     const { data: logs } = await supabaseClient.from("daily_logs").select("*").eq("user_id", user.id);
-    
-    // ストリーク計算
     let streakCount = 0;
     let tempDate = new Date();
     const activeDays = new Set(logs?.filter(l => l.minutes > 0).map(l => l.work_date));
@@ -283,27 +283,20 @@ async function renderCalendar() {
     }
     document.getElementById("streakDisplay").innerText = streakCount > 0 ? `🔥 ${streakCount}日連続中！` : `🌵 記録を始めよう`;
     updateDisplay();
-
-    // 復活：カレンダー4段階色分け
     const calendar = document.getElementById("calendar"); calendar.innerHTML = "";
     const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate();
     for (let i = 0; i < firstDay; i++) calendar.appendChild(document.createElement("div"));
-    
     const thisMonthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
     const thisMonthLogs = logs?.filter(l => l.work_date.startsWith(thisMonthPrefix));
     const totalMins = thisMonthLogs ? thisMonthLogs.reduce((sum, l) => sum + l.minutes, 0) : 0;
     document.getElementById("monthTotal").innerText = `今月合計: ${(totalMins/60).toFixed(1)} h`;
-
     for (let d = 1; d <= daysInMonth; d++) {
         const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         const log = logs?.find(l => l.work_date === dStr);
         const el = document.createElement("div"); el.className = "day"; el.innerText = d;
         if (log?.minutes > 0) {
             const m = log.minutes;
-            if (m >= 300) el.style.background = "#216e39";
-            else if (m >= 120) el.style.background = "#30a14e";
-            else if (m >= 30) el.style.background = "#40c463";
-            else el.style.background = "#9be9a8";
+            if (m >= 300) el.style.background = "#216e39"; else if (m >= 120) el.style.background = "#30a14e"; else if (m >= 30) el.style.background = "#40c463"; else el.style.background = "#9be9a8";
             el.style.color = m >= 120 ? "white" : "black";
         }
         calendar.appendChild(el);
@@ -312,9 +305,9 @@ async function renderCalendar() {
 
 function getBonusMultiplier(s) { return s >= 14 ? 1.2 : s >= 7 ? 1.1 : s >= 3 ? 1.05 : 1.0; }
 function changeMonth(o){ currentDate.setMonth(currentDate.getMonth()+o); renderCalendar(); }
-function toggleRank(id){ document.getElementById(id).classList.toggle('open'); document.getElementById(id).previousElementSibling.querySelector('.arrow').style.transform = document.getElementById(id).classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; }
-function confirmResetTimer(){ if(confirm("タイマーをリセットしますか？")){ remainingSeconds=0; updateTimerDisplay(); } }
-function confirmResetData(){ if(confirm("全ての累計データをリセットしますか？")){ totalHours=0; updateDisplay(); } }
+function toggleRank(id){ document.getElementById(id).classList.toggle('open'); }
+function confirmResetTimer(){ if(confirm("タイマーをリセット？")){ remainingSeconds=0; updateTimerDisplay(); } }
+function confirmResetData(){ if(confirm("累計をリセット？")){ totalHours=0; updateDisplay(); } }
 
 async function init() {
     const { data: { user } } = await supabaseClient.auth.getUser();
