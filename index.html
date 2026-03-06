@@ -307,8 +307,18 @@ function updateTimerDisplay(){
 }
 function addTestHours(){ 
     totalHours += 10; 
+    
+    // ランキング用の変数も更新（10時間 = 36000秒）
+    liveTotalSeconds += 36000;
+    liveWeeklySeconds += 36000;
+    liveMonthlySeconds += 36000;
+    
     updateDisplay(); 
-    saveToSupabase(); // ← テスト時も即保存
+    
+    // saveToSupabaseが存在するか確認してから実行
+    if (typeof saveToSupabase === "function") {
+        saveToSupabase(); 
+    }
 }
 function resetData(){ totalHours=0; updateDisplay(); }
 function confirmResetTimer(){
@@ -638,9 +648,10 @@ async function saveToSupabase() {
     let record = {
         user_id: user.id,
         username: nickname,
-        total_minutes: Math.floor(totalHours * 60),
-        weekly_minutes: Math.floor(totalHours * 60),
-        monthly_minutes: Math.floor(totalHours * 60)
+        // liveTotalSeconds（秒）を分に変換して保存
+        total_minutes: Math.floor(liveTotalSeconds / 60),
+        weekly_minutes: Math.floor(liveWeeklySeconds / 60),
+        monthly_minutes: Math.floor(liveMonthlySeconds / 60)
     };
     await supabaseClient.from("record").upsert(record, { onConflict: "user_id" });
     updateRanking();
