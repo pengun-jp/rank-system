@@ -636,12 +636,10 @@ async function saveToSupabase() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if(!user) return;
 
-    const nickname = user.user_metadata?.nickname || user.email.split('@')[0];
-
-    // totalHours（時間）を「分」に直して、Math.floorで整数にする
+    // ★ ニックネームをやめて、一旦「user.email」に戻してみる
     let record = {
         user_id: user.id,
-        username: nickname, 
+        username: user.email, 
         total_minutes: Math.floor(totalHours * 60),
         weekly_minutes: Math.floor(totalHours * 60),
         monthly_minutes: Math.floor(totalHours * 60)
@@ -652,9 +650,10 @@ async function saveToSupabase() {
         .upsert(record, { onConflict: "user_id" });
 
     if (error) {
-        // エラーが出たらアラートで教えてくれるようにしたよ
-        alert("保存エラー: " + error.message);
+        // エラーの内容を具体的にアラートに出す
+        alert("保存エラー報告書:\nメッセージ: " + error.message + "\n詳細: " + error.details);
     } else {
+        console.log("保存成功！");
         updateRanking();
     }
 }
