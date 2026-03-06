@@ -479,19 +479,27 @@ async function loadUserRecord(user) {
     .from("record")
     .select("*")
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle(); // ← .single() を .maybeSingle() に変える！
+
+  if (error) {
+    console.error("データ読み込み失敗:", error.message);
+    return;
+  }
 
   if (data) {
-    // DBの「分」を「時間」に変換して反映
+    // データがある場合のみ反映
     totalHours = data.total_minutes / 60;
     liveTotalSeconds = data.total_minutes * 60;
     liveWeeklySeconds = data.weekly_minutes * 60;
     liveMonthlySeconds = data.monthly_minutes * 60;
-    
-    updateDisplay(); // 画面のランク表示などを更新
+    updateDisplay();
+  } else {
+    console.log("新規ユーザーです。データを作成します。");
+    // データがない場合は0からスタート
+    totalHours = 0;
+    updateDisplay();
   }
 }
-
 async function signOut(){
   await supabaseClient.auth.signOut();
   document.getElementById("authMessage").innerText = "ログアウトしました";
