@@ -208,6 +208,7 @@ const supabaseUrl = "https://vfgfunxzthogghymrnnq.supabase.co", supabaseKey = "e
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // --- 表示更新用関数 ---
+// --- 表示更新用関数 (3分で0.1hにならない修正版) ---
 function updateDisplay() {
     const streakDisplay = document.getElementById("streakDisplay");
     const streakText = streakDisplay ? streakDisplay.innerText : "0";
@@ -216,11 +217,11 @@ function updateDisplay() {
     const totalWithBonus = totalHours; 
     const rawHours = totalWithBonus / multiplier;
     
-    // ★ 表示を小数点第1位で「切り捨て」にする (例: 0.09h -> 0.0h)
+    // ★ 修正ポイント：10倍して切り捨ててから10で割る（絶対切り捨て）
     const displayTotal = Math.floor(totalWithBonus * 10) / 10;
     document.getElementById("totalHours").innerText = displayTotal.toFixed(1);
 
-    // 詳細表示も切り捨てを適用
+    // 詳細表示も同様に切り捨て
     const displayRaw = Math.floor(rawHours * 10) / 10;
     const displayBonus = Math.floor((totalWithBonus - rawHours) * 10) / 10;
     document.getElementById("totalHoursDetail").innerText = `(実質努力: ${displayRaw.toFixed(1)}h + 🎁ボーナス: ${displayBonus.toFixed(1)}h)`;
@@ -236,9 +237,10 @@ function updateDisplay() {
     
     const bar = document.getElementById("progressBar");
     if(nextRank){
-        // ★ 次のランクまでは「切り上げ」で表示（あと少しでも必要なら0.1と出す）
+        // ★ 次のランクまでは「切り上げ」で整合性をとる
         const needed = nextRank.hours - totalWithBonus;
-        document.getElementById("nextRank").innerText = (Math.ceil(needed * 10) / 10).toFixed(1);
+        const displayNext = Math.ceil(needed * 10) / 10;
+        document.getElementById("nextRank").innerText = displayNext.toFixed(1);
         
         let percent = ((totalWithBonus - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
         bar.style.width = percent + "%"; 
