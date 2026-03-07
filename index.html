@@ -279,36 +279,77 @@ async function fetchNews() {
 }
 
 async function saveToSupabase() {
-    const { data: { user } } = await supabaseClient.auth.getUser(); if (!user) return;
-    const todayStr = new Date().toLocaleDateString('sv-SE');
-    const { data: currentLog } = await supabaseClient.from("daily_logs").select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
-    await supabaseClient.from("daily_logs").upsert({ user_id: user.id, work_date: todayStr, minutes: (currentLog?.minutes || 0) + 30 }, { onConflict: "user_id,work_date" });
-    await supabaseClient.from("record").upsert({ user_id: user.id, total_minutes: Math.round(totalHours * 60), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
-    updateRanking(); renderCalendar();
-}
+    const { data: { user } } = await supabaseClient.auth.getUser(); 
+    if (!user) return;
 
+    // 1. 今のrecordデータを一旦読み込んで、現在の「今日・週・月」の時間を確認する
+    const { data: record } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
+
+    // 2. 今の数値に「+30分」加算する（データがなければ0からスタート）
+    const newDaily = (record?.daily_minutes || 0) + 30;
+    const newWeekly = (record?.weekly_minutes || 0) + 30;
+    const newMonthly = (record?.monthly_minutes || 0) + 30;
+
+    // 3. Supabaseの全てのカラム（箱）を更新！
+    await supabaseClient.from("record").upsert({ 
+        user_id: user.id, 
+        total_minutes: Math.round(totalHours * 60), // 累計（既存）
+        daily_minutes: newDaily,                    // 今日（追加）
+        weekly_minutes: newWeekly,                  // 今週（追加）
+        monthly_minutes: newMonthly,                // 今月（追加）
+        updated_at: new Date().toISOString() 
+    }, { onConflict: "user_id" });
+
+    // 4. カレンダーとランキングの表示を最新にする
+    updateRanking(); 
+    renderCalendar();
+}
 async function updateRanking(){
     const { data: { user } } = await supabaseClient.auth.getUser();
-    const types = [{ col: "total_minutes", id: "totalRank", my: "myRankTotal" }];
+
+    // 表示したいランキングの「カラム名」と「HTMLのID」をセットにする
+    const types = [
+        { col: "daily_minutes", id: "dailyRank", my: "myRankDaily" },
+        { col: "weekly_minutes", id: "weekRank", my: "myRankWeek" },
+        { col: "monthly_minutes", id: "monthRank", my: "myRankMonth" },
+        { col: "total_minutes", id: "totalRank", my: "myRankTotal" }
+    ];
+
     for(let t of types) {
         try {
-            const { data, error } = await supabaseClient.from("record").select("user_id, username, total_minutes").order(t.col, {ascending:false}).limit(10);
+            // データを取得（新しいカラムも全部含めて取得する）
+            const { data, error } = await supabaseClient
+                .from("record")
+                .select("user_id, username, total_minutes, daily_minutes, weekly_minutes, monthly_minutes")
+                .order(t.col, {ascending:false})
+                .limit(10);
+
             if(error) throw error;
-            const div = document.getElementById(t.id); div.innerHTML = "";
+
+            const div = document.getElementById(t.id);
+            div.innerHTML = "";
+            
             if(data) {
                 data.forEach((r, i) => {
-                    div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">${i+1}位: ${r.username || '匿名'}<br><b style="color:#0d6efd;">${(r[t.col]/60).toFixed(1)}h</b></div>`;
+                    // そのランキング（今日、週、月など）に応じた時間を表示
+                    const displayHours = ((r[t.col] || 0) / 60).toFixed(1);
+                    div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">
+                        ${i+1}位: ${r.username || '匿名'}<br>
+                        <b style="color:#0d6efd;">${displayHours}h</b>
+                    </div>`;
                 });
+
                 if(user) {
                     const myIdx = data.findIndex(a => a.user_id === user.id) + 1;
                     const myRankEl = document.getElementById(t.my);
                     if(myRankEl) myRankEl.innerText = `あなたの順位: ${myIdx > 0 ? myIdx : '-'}位`;
                 }
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(`${t.id}の更新に失敗:`, e);
+        }
     }
 }
-
 async function renderCalendar() {
     const { data: { user } } = await supabaseClient.auth.getUser(); if (!user) return;
     const year = currentDate.getFullYear(), month = currentDate.getMonth();
