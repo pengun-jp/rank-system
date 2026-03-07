@@ -263,15 +263,15 @@ function startTimer(){
 
         // ★ 1分（60秒）経過するごとに、1分分を保存する
         if (remainingSeconds > 0 && remainingSeconds % 60 === 0) {
-            saveMinutesToSupabase(1); 
-        }
+    saveToSupabase(1); // これで正解
+}
 
         // タイマーが完全に終了した時
         if(remainingSeconds <= 0){ 
             clearInterval(timerInterval); 
             timerInterval = null; 
             // 最後の1分分を保存
-            saveMinutesToSupabase(1);
+            saveToSupabase(1);
             alert("お疲れ様でした！学習記録を保存しました。");
         }
     }, 1000);
