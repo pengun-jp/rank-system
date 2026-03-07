@@ -250,18 +250,31 @@ function updateTimerDisplay(){
 // --- タイマー操作 ---
 function addTime(){ remainingSeconds += 1800; updateTimerDisplay(); }
 function startTimer(){
-    if(timerInterval){ clearInterval(timerInterval); timerInterval=null; return; }
-    if(remainingSeconds<=0) return;
+    if(timerInterval){ 
+        clearInterval(timerInterval); 
+        timerInterval=null; 
+        return; 
+    }
+    if(remainingSeconds <= 0) return;
+
     timerInterval = setInterval(() => {
-        remainingSeconds--; updateTimerDisplay();
-        if(remainingSeconds<=0){ 
-            clearInterval(timerInterval); 
-            timerInterval=null; 
-            totalHours += 0.5; 
-            saveToSupabase(); 
-            updateDisplay(); 
+        remainingSeconds--; 
+        updateTimerDisplay();
+
+        // ★ 1分（60秒）経過するごとに、1分分を保存する
+        if (remainingSeconds > 0 && remainingSeconds % 60 === 0) {
+            saveMinutesToSupabase(1); 
         }
-    },1000);
+
+        // タイマーが完全に終了した時
+        if(remainingSeconds <= 0){ 
+            clearInterval(timerInterval); 
+            timerInterval = null; 
+            // 最後の1分分を保存
+            saveMinutesToSupabase(1);
+            alert("お疲れ様でした！学習記録を保存しました。");
+        }
+    }, 1000);
 }
 
 // --- Supabase連携 ---
@@ -278,69 +291,68 @@ async function fetchNews() {
     `).join('');
 }
 
-async function saveToSupabase() {
+// 引数 (mins) に入れた分だけ加算されるようになります
+async function saveToSupabase(mins = 30) {
     const { data: { user } } = await supabaseClient.auth.getUser(); 
     if (!user) return;
 
-    // 1. 今のrecord（ランキング用データ）を取得
+    // 1. 現在のデータを取得
     const { data: record } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
-    
-    // 2. 日付・ボーナスの準備
     const now = new Date();
     const todayStr = now.toLocaleDateString('sv-SE');
     const lastUpdate = record?.updated_at ? new Date(record.updated_at) : null;
     const lastUpdateStr = lastUpdate ? lastUpdate.toLocaleDateString('sv-SE') : "";
 
-    // ストリーク数からボーナス倍率を取得
+    // 2. ボーナス倍率の取得
     const streakText = document.getElementById("streakDisplay").innerText;
     const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
     const multiplier = getBonusMultiplier(streakNum);
     
-    // 今回加算する「ボーナス込みの分」を計算 (30分 × 倍率)
-    const addedMinutesWithBonus = 30 * multiplier;
+    // 加算する分（ボーナス込み）
+    const addedWithBonus = mins * multiplier;
 
-    // 3. 累計時間(totalHours)にボーナス分を反映させる
-    // これで「実質努力 + ボーナス」の合計が totalHours になる
-    totalHours += (addedMinutesWithBonus / 60);
+    // 3. 累計時間(totalHours)を更新
+    totalHours += (addedWithBonus / 60);
 
-    // 4. 各ランキング用（今日・週・月）の加算とリセット判定
-    let newDaily = (record?.daily_minutes || 0) + addedMinutesWithBonus;
-    let newWeekly = (record?.weekly_minutes || 0) + addedMinutesWithBonus;
-    let newMonthly = (record?.monthly_minutes || 0) + addedMinutesWithBonus;
+    // 4. リセット判定と新しい値の計算
+    let newDaily = (record?.daily_minutes || 0) + addedWithBonus;
+    let newWeekly = (record?.weekly_minutes || 0) + addedWithBonus;
+    let newMonthly = (record?.monthly_minutes || 0) + addedWithBonus;
 
     if (lastUpdateStr !== todayStr) {
-        newDaily = addedMinutesWithBonus; // 日付変更リセット
+        newDaily = addedWithBonus; // 日付が変わったらリセット
         if (lastUpdate && lastUpdate.getMonth() !== now.getMonth()) {
-            newMonthly = addedMinutesWithBonus; // 月変更リセット
+            newMonthly = addedWithBonus; // 月が変わったらリセット
         }
         if (lastUpdate && (now - lastUpdate > 7 * 24 * 60 * 60 * 1000 || now.getDay() < lastUpdate.getDay())) {
-            newWeekly = addedMinutesWithBonus; // 週変更リセット
+            newWeekly = addedWithBonus; // 週が変わったらリセット
         }
     }
 
-    // 5. Supabaseの record テーブルへ保存
+    // 5. Supabaseのランキング用テーブル(record)を更新
     await supabaseClient.from("record").upsert({ 
         user_id: user.id, 
-        total_minutes: Math.round(totalHours * 60), // ボーナス込みの総計分
+        total_minutes: Math.round(totalHours * 60),
         daily_minutes: Math.round(newDaily),
         weekly_minutes: Math.round(newWeekly),
         monthly_minutes: Math.round(newMonthly),
-        updated_at: now.toISOString() 
+        updated_at: now.toISOString(),
+        username: document.getElementById("newNickname").value || record?.username || '匿名'
     }, { onConflict: "user_id" });
 
-    // 6. カレンダー用（daily_logs）は「実際に作業した時間(30分)」を記録
+    // 6. カレンダー用(daily_logs)は「実際に作業した分(mins)」を記録
     const { data: currentLog } = await supabaseClient.from("daily_logs")
         .select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
     
     await supabaseClient.from("daily_logs").upsert({ 
         user_id: user.id, 
         work_date: todayStr, 
-        minutes: (currentLog?.minutes || 0) + 30 
+        minutes: (currentLog?.minutes || 0) + mins 
     }, { onConflict: "user_id,work_date" });
 
-    // 7. 画面とランキングを更新
-    updateDisplay(); 
-    updateRanking(); 
+    // 7. 画面表示をすべて更新
+    updateDisplay();
+    updateRanking();
     renderCalendar();
 }
 async function updateRanking(){
