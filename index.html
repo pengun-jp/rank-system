@@ -371,7 +371,7 @@ async function updateRanking(){
                 .from("record")
                 .select("user_id, username, total_minutes, daily_minutes, weekly_minutes, monthly_minutes")
                 .order(t.col, {ascending:false})
-                .limit(10);
+                .limit(100);
 
             if(error) throw error;
 
