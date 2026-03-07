@@ -144,7 +144,7 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
         <hr>
         <div style="display:flex; justify-content:center; gap:5px;">
             <input id="newNickname" type="text" placeholder="名前変更" style="padding:8px; width:150px;">
-            <button onclick="updateNickname()" style="font-size:14px; padding:5px 10px;">変更</button>
+            <button onclick="Nickname()" style="font-size:14px; padding:5px 10px;">変更</button>
         </div>
     </div>
 
@@ -226,21 +226,21 @@ async function fetchNews() {
     `).join('');
 }
 
-function addTime(){ remainingSeconds += 1800; updateTimerDisplay(); }
+function addTime(){ remainingSeconds += 1800; TimerDisplay(); }
 function startTimer(){
     if(timerInterval){ clearInterval(timerInterval); timerInterval=null; return; }
     if(remainingSeconds<=0) return;
     timerInterval = setInterval(() => {
-        remainingSeconds--; updateTimerDisplay();
-        if(remainingSeconds<=0){ clearInterval(timerInterval); timerInterval=null; totalHours += 0.5; saveToSupabase(); updateDisplay(); }
+        remainingSeconds--; TimerDisplay();
+        if(remainingSeconds<=0){ clearInterval(timerInterval); timerInterval=null; totalHours += 0.5; saveToSupabase(); Display(); }
     },1000);
 }
-function updateTimerDisplay(){
+function TimerDisplay(){
     const h=String(Math.floor(remainingSeconds/3600)).padStart(2,"0"), m=String(Math.floor((remainingSeconds%3600)/60)).padStart(2,"0"), s=String(remainingSeconds%60).padStart(2,"0");
     document.getElementById("timer").innerText=`${h}:${m}:${s}`;
 }
 
-function updateDisplay() {
+function Display() {
     const streakText = document.getElementById("streakDisplay").innerText;
     const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
     const multiplier = getBonusMultiplier(streakNum);
@@ -263,25 +263,61 @@ function updateDisplay() {
 async function signUp(){ const email=document.getElementById("email").value, password=document.getElementById("password").value; const { error } = await supabaseClient.auth.signUp({ email, password }); alert(error ? error.message : "登録成功！"); }
 async function signIn(){ const email = document.getElementById("email").value, password = document.getElementById("password").value; const { data: { user }, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if(error) alert(error.message); else init(); }
 async function signOut(){ await supabaseClient.auth.signOut(); location.reload(); }
-async function updateNickname() { const name = document.getElementById("newNickname").value; if(!name) return; const { data: { user } } = await supabaseClient.auth.getUser(); await supabaseClient.from("record").upsert({ user_id: user.id, username: name }, { onConflict: "user_id" }); alert("名前を変更しました"); location.reload(); }
+async function Nickname() { const name = document.getElementById("newNickname").value; if(!name) return; const { data: { user } } = await supabaseClient.auth.getUser(); await supabaseClient.from("record").upsert({ user_id: user.id, username: name }, { onConflict: "user_id" }); alert("名前を変更しました"); location.reload(); }
 
 async function saveToSupabase() {
     const { data: { user } } = await supabaseClient.auth.getUser(); if (!user) return;
     const todayStr = new Date().toLocaleDateString('sv-SE');
     const { data: currentLog } = await supabaseClient.from("daily_logs").select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
     await supabaseClient.from("daily_logs").upsert({ user_id: user.id, work_date: todayStr, minutes: (currentLog?.minutes || 0) + 30 }, { onConflict: "user_id,work_date" });
-    await supabaseClient.from("record").upsert({ user_id: user.id, total_minutes: Math.round(totalHours * 60), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
-    updateRanking(); renderCalendar();
+    await supabaseClient.from("record").upsert({ user_id: user.id, total_minutes: Math.round(totalHours * 60), d_at: new Date().toISOString() }, { onConflict: "user_id" });
+    Ranking(); renderCalendar();
 }
 
 async function updateRanking(){
-    const types = [{ col: "daily_minutes", id: "dailyRank", my: "myRankDaily" }, { col: "weekly_minutes", id: "weekRank", my: "myRankWeek" }, { col: "monthly_minutes", id: "monthRank", my: "myRankMonth" }, { col: "total_minutes", id: "totalRank", my: "myRankTotal" }];
+    console.log("ランキング更新開始...");
     const { data: { user } } = await supabaseClient.auth.getUser();
+
+    // まずは確実に存在する total_minutes だけに絞ってテスト
+    const types = [
+        { col: "total_minutes", id: "totalRank", my: "myRankTotal" }
+        // daily_minutes などがテーブルにあることを確認したらここに追加
+    ];
+
     for(let t of types) {
-        const { data } = await supabaseClient.from("record").select("*").order(t.col, {ascending:false}).limit(10);
-        const div = document.getElementById(t.id); div.innerHTML = "";
-        data?.forEach((r, i) => { div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">${i+1}位: ${r.username || '匿名'}<br><b style="color:#0d6efd;">${(r[t.col]/60).toFixed(1)}h</b></div>`; });
-        if(user) { const { data: all } = await supabaseClient.from("record").select("user_id").order(t.col, {ascending:false}); const myIdx = all?.findIndex(a => a.user_id === user.id) + 1; document.getElementById(t.my).innerText = `あなたの順位: ${myIdx || '-'}位`; }
+        try {
+            const { data, error } = await supabaseClient
+                .from("record")
+                .select("user_id, username, total_minutes")
+                .order(t.col, {ascending:false})
+                .limit(10);
+
+            if(error) throw error;
+
+            const div = document.getElementById(t.id);
+            div.innerHTML = "";
+            
+            if(data && data.length > 0) {
+                data.forEach((r, i) => {
+                    div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">
+                        ${i+1}位: ${r.username || '匿名'}<br>
+                        <b style="color:#0d6efd;">${(r[t.col]/60).toFixed(1)}h</b>
+                    </div>`;
+                });
+
+                // 自分の順位計算
+                if(user) {
+                    const myIdx = data.findIndex(a => a.user_id === user.id) + 1;
+                    const myRankEl = document.getElementById(t.my);
+                    if(myRankEl) myRankEl.innerText = `あなたの順位: ${myIdx > 0 ? myIdx : '-'}位`;
+                }
+            } else {
+                document.getElementById(t.id).innerHTML = "<p style='font-size:12px; padding:10px;'>データがありません</p>";
+            }
+        } catch (e) {
+            console.error(`${t.id} の読み込みに失敗:`, e.message);
+            document.getElementById(t.id).innerHTML = "<p style='color:red; font-size:11px;'>読み込みエラー</p>";
+        }
     }
 }
 
