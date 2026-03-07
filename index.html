@@ -216,8 +216,14 @@ function updateDisplay() {
     const totalWithBonus = totalHours; 
     const rawHours = totalWithBonus / multiplier;
     
-    document.getElementById("totalHours").innerText = totalWithBonus.toFixed(1);
-    document.getElementById("totalHoursDetail").innerText = `(実質努力: ${rawHours.toFixed(1)}h + 🎁ボーナス: ${(totalWithBonus - rawHours).toFixed(1)}h)`;
+    // ★ 表示を小数点第1位で「切り捨て」にする (例: 0.09h -> 0.0h)
+    const displayTotal = Math.floor(totalWithBonus * 10) / 10;
+    document.getElementById("totalHours").innerText = displayTotal.toFixed(1);
+
+    // 詳細表示も切り捨てを適用
+    const displayRaw = Math.floor(rawHours * 10) / 10;
+    const displayBonus = Math.floor((totalWithBonus - rawHours) * 10) / 10;
+    document.getElementById("totalHoursDetail").innerText = `(実質努力: ${displayRaw.toFixed(1)}h + 🎁ボーナス: ${displayBonus.toFixed(1)}h)`;
     
     let currentRank = ranks[0], nextRank = null;
     for(let i=0; i<ranks.length-1; i++){ if(totalWithBonus >= ranks[i].hours && totalWithBonus < ranks[i+1].hours){ currentRank = ranks[i]; nextRank = ranks[i+1]; break; } }
@@ -230,7 +236,10 @@ function updateDisplay() {
     
     const bar = document.getElementById("progressBar");
     if(nextRank){
-        document.getElementById("nextRank").innerText = (nextRank.hours - totalWithBonus).toFixed(1);
+        // ★ 次のランクまでは「切り上げ」で表示（あと少しでも必要なら0.1と出す）
+        const needed = nextRank.hours - totalWithBonus;
+        document.getElementById("nextRank").innerText = (Math.ceil(needed * 10) / 10).toFixed(1);
+        
         let percent = ((totalWithBonus - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
         bar.style.width = percent + "%"; 
         bar.style.background = currentRank.color; 
@@ -296,43 +305,39 @@ async function saveToSupabase(mins = 30) {
     const { data: { user } } = await supabaseClient.auth.getUser(); 
     if (!user) return;
 
-    // 1. 現在のデータを取得
     const { data: record } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
     const now = new Date();
     const todayStr = now.toLocaleDateString('sv-SE');
     const lastUpdate = record?.updated_at ? new Date(record.updated_at) : null;
     const lastUpdateStr = lastUpdate ? lastUpdate.toLocaleDateString('sv-SE') : "";
 
-    // 2. ボーナス倍率の取得
     const streakText = document.getElementById("streakDisplay").innerText;
     const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
     const multiplier = getBonusMultiplier(streakNum);
     
-    // 加算する分（ボーナス込み）
     const addedWithBonus = mins * multiplier;
 
-    // 3. 累計時間(totalHours)を更新
-    totalHours += (addedWithBonus / 60);
+    // ★ 内部数値を更新（正確に加算し、誤差を防ぐために小数点第4位で管理）
+    totalHours = Number((totalHours + (addedWithBonus / 60)).toFixed(4));
 
-    // 4. リセット判定と新しい値の計算
     let newDaily = (record?.daily_minutes || 0) + addedWithBonus;
     let newWeekly = (record?.weekly_minutes || 0) + addedWithBonus;
     let newMonthly = (record?.monthly_minutes || 0) + addedWithBonus;
 
     if (lastUpdateStr !== todayStr) {
-        newDaily = addedWithBonus; // 日付が変わったらリセット
+        newDaily = addedWithBonus;
         if (lastUpdate && lastUpdate.getMonth() !== now.getMonth()) {
-            newMonthly = addedWithBonus; // 月が変わったらリセット
+            newMonthly = addedWithBonus;
         }
         if (lastUpdate && (now - lastUpdate > 7 * 24 * 60 * 60 * 1000 || now.getDay() < lastUpdate.getDay())) {
-            newWeekly = addedWithBonus; // 週が変わったらリセット
+            newWeekly = addedWithBonus;
         }
     }
 
-    // 5. Supabaseのランキング用テーブル(record)を更新
     await supabaseClient.from("record").upsert({ 
         user_id: user.id, 
-        total_minutes: Math.round(totalHours * 60),
+        // ★ 保存時は現在の totalHours（時間）から正確な「分」を計算して切り捨て
+        total_minutes: Math.floor(totalHours * 60),
         daily_minutes: Math.round(newDaily),
         weekly_minutes: Math.round(newWeekly),
         monthly_minutes: Math.round(newMonthly),
@@ -340,7 +345,6 @@ async function saveToSupabase(mins = 30) {
         username: document.getElementById("newNickname").value || record?.username || '匿名'
     }, { onConflict: "user_id" });
 
-    // 6. カレンダー用(daily_logs)は「実際に作業した分(mins)」を記録
     const { data: currentLog } = await supabaseClient.from("daily_logs")
         .select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
     
@@ -350,7 +354,6 @@ async function saveToSupabase(mins = 30) {
         minutes: (currentLog?.minutes || 0) + mins 
     }, { onConflict: "user_id,work_date" });
 
-    // 7. 画面表示をすべて更新
     updateDisplay();
     updateRanking();
     renderCalendar();
