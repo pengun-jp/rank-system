@@ -348,7 +348,6 @@ async function saveToSupabase() {
 async function updateRanking(){
     const { data: { user } } = await supabaseClient.auth.getUser();
 
-    // 表示したいランキングの「カラム名」と「HTMLのID」をセットにする
     const types = [
         { col: "daily_minutes", id: "dailyRank", my: "myRankDaily" },
         { col: "weekly_minutes", id: "weekRank", my: "myRankWeek" },
@@ -358,7 +357,6 @@ async function updateRanking(){
 
     for(let t of types) {
         try {
-            // データを取得（新しいカラムも全部含めて取得する）
             const { data, error } = await supabaseClient
                 .from("record")
                 .select("user_id, username, total_minutes, daily_minutes, weekly_minutes, monthly_minutes")
@@ -368,39 +366,41 @@ async function updateRanking(){
             if(error) throw error;
 
             const div = document.getElementById(t.id);
+            if (!div) continue; // IDが見つからない場合はスキップ
+            
             div.innerHTML = "";
             
-            if(data) {
+            if(data && data.length > 0) {
                 data.forEach((r, i) => {
-                    // そのランキング（今日、週、月など）に応じた時間を表示
-                    // 分を「時間」と「余りの分」に分解する
-const totalMin = r[t.col] || 0;
-const h = Math.floor(totalMin / 60);
-const m = Math.round(totalMin % 60);
+                    // 分を「時間」と「余りの分」に計算
+                    const totalMin = r[t.col] || 0;
+                    const h = Math.floor(totalMin / 60);
+                    const m = Math.round(totalMin % 60);
+                    const timeStr = `${h}h ${m}m`;
 
-// 表示用テキストを作成（0分なら表示しない、などのアレンジも可能）
-const timeStr = `${h}h ${m}m`;
-
-div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">
-    ${i+1}位: ${r.username || '匿名'}<br>
-    <b style="color:#0d6efd;">${timeStr}</b>
-</div>`;
-                        ${i+1}位: ${r.username || '匿名'}<br>
-                        <b style="color:#0d6efd;">${displayHours}h</b>
-                    </div>`;
+                    div.innerHTML += `
+                        <div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">
+                            ${i+1}位: ${r.username || '匿名'}<br>
+                            <b style="color:#0d6efd;">${timeStr}</b>
+                        </div>`;
                 });
 
                 if(user) {
                     const myIdx = data.findIndex(a => a.user_id === user.id) + 1;
                     const myRankEl = document.getElementById(t.my);
-                    if(myRankEl) myRankEl.innerText = `あなたの順位: ${myIdx > 0 ? myIdx : '-'}位`;
+                    if(myRankEl) {
+                        myRankEl.innerText = `あなたの順位: ${myIdx > 0 ? myIdx : '-'}位`;
+                    }
                 }
+            } else {
+                div.innerHTML = "<p style='font-size:12px; padding:10px;'>データがありません</p>";
             }
         } catch (e) {
             console.error(`${t.id}の更新に失敗:`, e);
         }
     }
 }
+
 async function renderCalendar() {
     const { data: { user } } = await supabaseClient.auth.getUser(); if (!user) return;
     const year = currentDate.getFullYear(), month = currentDate.getMonth();
