@@ -192,6 +192,7 @@ button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; bord
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const ranks = [
     { name:"ブロンズ I", hours:0, color:"#ff9900", stroke:"#cc6600" }, { name:"ブロンズ II", hours:4, color:"#ff9900", stroke:"#cc6600" }, { name:"ブロンズ III", hours:11, color:"#ff9900", stroke:"#cc6600" },
@@ -206,18 +207,69 @@ let totalHours = 0, timerInterval = null, remainingSeconds = 0, currentDate = ne
 const supabaseUrl = "https://vfgfunxzthogghymrnnq.supabase.co", supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZ2Z1bnh6dGhvZ2doeW1ybm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMTQzMDQsImV4cCI6MjA4Nzg5MDMwNH0.HA0wze4yqkq1XebULhpyDUqQkgRe4xIoHUBTB65bM-o";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+// --- 表示更新用関数 ---
+function updateDisplay() {
+    const streakDisplay = document.getElementById("streakDisplay");
+    const streakText = streakDisplay ? streakDisplay.innerText : "0";
+    const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
+    const multiplier = getBonusMultiplier(streakNum);
+    const totalWithBonus = totalHours; 
+    const rawHours = totalWithBonus / multiplier;
+    
+    document.getElementById("totalHours").innerText = totalWithBonus.toFixed(1);
+    document.getElementById("totalHoursDetail").innerText = `(実質努力: ${rawHours.toFixed(1)}h + 🎁ボーナス: ${(totalWithBonus - rawHours).toFixed(1)}h)`;
+    
+    let currentRank = ranks[0], nextRank = null;
+    for(let i=0; i<ranks.length-1; i++){ if(totalWithBonus >= ranks[i].hours && totalWithBonus < ranks[i+1].hours){ currentRank = ranks[i]; nextRank = ranks[i+1]; break; } }
+    if(totalWithBonus >= ranks[ranks.length-1].hours) currentRank = ranks[ranks.length-1];
+    
+    const rankEl = document.getElementById("rank"); 
+    rankEl.innerText = currentRank.name; 
+    rankEl.style.color = currentRank.color; 
+    rankEl.style.webkitTextStroke = "0.6px " + currentRank.stroke;
+    
+    const bar = document.getElementById("progressBar");
+    if(nextRank){
+        document.getElementById("nextRank").innerText = (nextRank.hours - totalWithBonus).toFixed(1);
+        let percent = ((totalWithBonus - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
+        bar.style.width = percent + "%"; 
+        bar.style.background = currentRank.color; 
+        document.getElementById("progressText").innerText = Math.floor(percent) + "%";
+    } else { 
+        document.getElementById("nextRank").innerText = "MAX"; 
+        bar.style.width = "100%"; 
+        document.getElementById("progressText").innerText = "100%"; 
+    }
+}
+
+function updateTimerDisplay(){
+    const h=String(Math.floor(remainingSeconds/3600)).padStart(2,"0"), m=String(Math.floor((remainingSeconds%3600)/60)).padStart(2,"0"), s=String(remainingSeconds%60).padStart(2,"0");
+    document.getElementById("timer").innerText=`${h}:${m}:${s}`;
+}
+
+// --- タイマー操作 ---
+function addTime(){ remainingSeconds += 1800; updateTimerDisplay(); }
+function startTimer(){
+    if(timerInterval){ clearInterval(timerInterval); timerInterval=null; return; }
+    if(remainingSeconds<=0) return;
+    timerInterval = setInterval(() => {
+        remainingSeconds--; updateTimerDisplay();
+        if(remainingSeconds<=0){ 
+            clearInterval(timerInterval); 
+            timerInterval=null; 
+            totalHours += 0.5; 
+            saveToSupabase(); 
+            updateDisplay(); 
+        }
+    },1000);
+}
+
+// --- Supabase連携 ---
 async function fetchNews() {
     const { data: news, error } = await supabaseClient.from('news').select('*').order('created_at', { ascending: false }).limit(5);
     const container = document.getElementById('newsContent');
-    const section = document.querySelector('.news-section'); // お知らせ枠全体
-
-    // エラーがあるか、お知らせが0件の場合は枠ごと消す
-    if (error || !news || news.length === 0) {
-        section.style.display = 'none'; 
-        return;
-    }
-
-    // データがある時だけ表示して中身を入れる
+    const section = document.querySelector('.news-section');
+    if (error || !news || news.length === 0) { section.style.display = 'none'; return; }
     section.style.display = 'block';
     container.innerHTML = news.map(item => `
         <div class="news-item">
@@ -226,98 +278,34 @@ async function fetchNews() {
     `).join('');
 }
 
-function addTime(){ remainingSeconds += 1800; TimerDisplay(); }
-function startTimer(){
-    if(timerInterval){ clearInterval(timerInterval); timerInterval=null; return; }
-    if(remainingSeconds<=0) return;
-    timerInterval = setInterval(() => {
-        remainingSeconds--; TimerDisplay();
-        if(remainingSeconds<=0){ clearInterval(timerInterval); timerInterval=null; totalHours += 0.5; saveToSupabase(); Display(); }
-    },1000);
-}
-function TimerDisplay(){
-    const h=String(Math.floor(remainingSeconds/3600)).padStart(2,"0"), m=String(Math.floor((remainingSeconds%3600)/60)).padStart(2,"0"), s=String(remainingSeconds%60).padStart(2,"0");
-    document.getElementById("timer").innerText=`${h}:${m}:${s}`;
-}
-
-function Display() {
-    const streakText = document.getElementById("streakDisplay").innerText;
-    const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
-    const multiplier = getBonusMultiplier(streakNum);
-    const totalWithBonus = totalHours; 
-    const rawHours = totalWithBonus / multiplier;
-    document.getElementById("totalHours").innerText = totalWithBonus.toFixed(1);
-    document.getElementById("totalHoursDetail").innerText = `(実質努力: ${rawHours.toFixed(1)}h + 🎁ボーナス: ${(totalWithBonus - rawHours).toFixed(1)}h)`;
-    let currentRank = ranks[0], nextRank = null;
-    for(let i=0; i<ranks.length-1; i++){ if(totalWithBonus >= ranks[i].hours && totalWithBonus < ranks[i+1].hours){ currentRank = ranks[i]; nextRank = ranks[i+1]; break; } }
-    if(totalWithBonus >= ranks[ranks.length-1].hours) currentRank = ranks[ranks.length-1];
-    const rankEl = document.getElementById("rank"); rankEl.innerText = currentRank.name; rankEl.style.color = currentRank.color; rankEl.style.webkitTextStroke = "0.6px " + currentRank.stroke;
-    const bar = document.getElementById("progressBar");
-    if(nextRank){
-        document.getElementById("nextRank").innerText = (nextRank.hours - totalWithBonus).toFixed(1);
-        let percent = ((totalWithBonus - currentRank.hours) / (nextRank.hours - currentRank.hours)) * 100;
-        bar.style.width = percent + "%"; bar.style.background = currentRank.color; document.getElementById("progressText").innerText = Math.floor(percent) + "%";
-    } else { document.getElementById("nextRank").innerText = "MAX"; bar.style.width = "100%"; document.getElementById("progressText").innerText = "100%"; }
-}
-
-async function signUp(){ const email=document.getElementById("email").value, password=document.getElementById("password").value; const { error } = await supabaseClient.auth.signUp({ email, password }); alert(error ? error.message : "登録成功！"); }
-async function signIn(){ const email = document.getElementById("email").value, password = document.getElementById("password").value; const { data: { user }, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if(error) alert(error.message); else init(); }
-async function signOut(){ await supabaseClient.auth.signOut(); location.reload(); }
-async function Nickname() { const name = document.getElementById("newNickname").value; if(!name) return; const { data: { user } } = await supabaseClient.auth.getUser(); await supabaseClient.from("record").upsert({ user_id: user.id, username: name }, { onConflict: "user_id" }); alert("名前を変更しました"); location.reload(); }
-
 async function saveToSupabase() {
     const { data: { user } } = await supabaseClient.auth.getUser(); if (!user) return;
     const todayStr = new Date().toLocaleDateString('sv-SE');
     const { data: currentLog } = await supabaseClient.from("daily_logs").select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
     await supabaseClient.from("daily_logs").upsert({ user_id: user.id, work_date: todayStr, minutes: (currentLog?.minutes || 0) + 30 }, { onConflict: "user_id,work_date" });
-    await supabaseClient.from("record").upsert({ user_id: user.id, total_minutes: Math.round(totalHours * 60), d_at: new Date().toISOString() }, { onConflict: "user_id" });
-    Ranking(); renderCalendar();
+    await supabaseClient.from("record").upsert({ user_id: user.id, total_minutes: Math.round(totalHours * 60), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    updateRanking(); renderCalendar();
 }
 
 async function updateRanking(){
-    console.log("ランキング更新開始...");
     const { data: { user } } = await supabaseClient.auth.getUser();
-
-    // まずは確実に存在する total_minutes だけに絞ってテスト
-    const types = [
-        { col: "total_minutes", id: "totalRank", my: "myRankTotal" }
-        // daily_minutes などがテーブルにあることを確認したらここに追加
-    ];
-
+    const types = [{ col: "total_minutes", id: "totalRank", my: "myRankTotal" }];
     for(let t of types) {
         try {
-            const { data, error } = await supabaseClient
-                .from("record")
-                .select("user_id, username, total_minutes")
-                .order(t.col, {ascending:false})
-                .limit(10);
-
+            const { data, error } = await supabaseClient.from("record").select("user_id, username, total_minutes").order(t.col, {ascending:false}).limit(10);
             if(error) throw error;
-
-            const div = document.getElementById(t.id);
-            div.innerHTML = "";
-            
-            if(data && data.length > 0) {
+            const div = document.getElementById(t.id); div.innerHTML = "";
+            if(data) {
                 data.forEach((r, i) => {
-                    div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">
-                        ${i+1}位: ${r.username || '匿名'}<br>
-                        <b style="color:#0d6efd;">${(r[t.col]/60).toFixed(1)}h</b>
-                    </div>`;
+                    div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">${i+1}位: ${r.username || '匿名'}<br><b style="color:#0d6efd;">${(r[t.col]/60).toFixed(1)}h</b></div>`;
                 });
-
-                // 自分の順位計算
                 if(user) {
                     const myIdx = data.findIndex(a => a.user_id === user.id) + 1;
                     const myRankEl = document.getElementById(t.my);
                     if(myRankEl) myRankEl.innerText = `あなたの順位: ${myIdx > 0 ? myIdx : '-'}位`;
                 }
-            } else {
-                document.getElementById(t.id).innerHTML = "<p style='font-size:12px; padding:10px;'>データがありません</p>";
             }
-        } catch (e) {
-            console.error(`${t.id} の読み込みに失敗:`, e.message);
-            document.getElementById(t.id).innerHTML = "<p style='color:red; font-size:11px;'>読み込みエラー</p>";
-        }
+        } catch (e) { console.error(e); }
     }
 }
 
@@ -330,7 +318,9 @@ async function renderCalendar() {
     const activeDays = new Set(logs?.filter(l => l.minutes > 0).map(l => l.work_date));
     while (true) { const dStr = tempDate.toLocaleDateString('sv-SE'); if (activeDays.has(dStr)) { streakCount++; tempDate.setDate(tempDate.getDate() - 1); } else if (streakCount === 0 && dStr === new Date().toLocaleDateString('sv-SE')) { tempDate.setDate(tempDate.getDate() - 1); } else break; }
     document.getElementById("streakDisplay").innerText = streakCount > 0 ? `🔥 ${streakCount}日連続中！` : `🌵 記録を始めよう`;
-    updateDisplay();
+    
+    updateDisplay(); // ここで updateDisplay を呼ぶ
+
     const calendar = document.getElementById("calendar"); calendar.innerHTML = "";
     const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate();
     for (let i = 0; i < firstDay; i++) calendar.appendChild(document.createElement("div"));
@@ -345,6 +335,13 @@ async function renderCalendar() {
     }
 }
 
+// --- アカウント系 ---
+async function signUp(){ const email=document.getElementById("email").value, password=document.getElementById("password").value; const { error } = await supabaseClient.auth.signUp({ email, password }); alert(error ? error.message : "登録成功！"); }
+async function signIn(){ const email = document.getElementById("email").value, password = document.getElementById("password").value; const { data: { user }, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if(error) alert(error.message); else init(); }
+async function signOut(){ await supabaseClient.auth.signOut(); location.reload(); }
+async function Nickname() { const name = document.getElementById("newNickname").value; if(!name) return; const { data: { user } } = await supabaseClient.auth.getUser(); await supabaseClient.from("record").upsert({ user_id: user.id, username: name }, { onConflict: "user_id" }); alert("名前を変更しました"); location.reload(); }
+
+// --- その他 ---
 function getBonusMultiplier(s) { return s >= 14 ? 1.2 : s >= 7 ? 1.1 : s >= 3 ? 1.05 : 1.0; }
 function changeMonth(o){ currentDate.setMonth(currentDate.getMonth()+o); renderCalendar(); }
 function toggleRank(id){ document.getElementById(id).classList.toggle('open'); }
@@ -353,12 +350,16 @@ function confirmResetData(){ if(confirm("累計をリセット？")){ totalHours
 
 async function init() {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    fetchNews(); // お知らせ取得
+    fetchNews(); 
     if (user) {
         document.getElementById("currentUser").innerText = "ログイン中: " + (user.user_metadata?.nickname || user.email);
         const { data } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
-        totalHours = (data?.total_minutes || 0) / 60; renderCalendar(); updateRanking();
-    } else { updateDisplay(); }
+        totalHours = (data?.total_minutes || 0) / 60; 
+        renderCalendar(); 
+        updateRanking();
+    } else { 
+        updateDisplay(); 
+    }
 }
 init();
 </script>
