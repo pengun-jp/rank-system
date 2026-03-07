@@ -373,8 +373,18 @@ async function updateRanking(){
             if(data) {
                 data.forEach((r, i) => {
                     // そのランキング（今日、週、月など）に応じた時間を表示
-                    const displayHours = ((r[t.col] || 0) / 60).toFixed(1);
-                    div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">
+                    // 分を「時間」と「余りの分」に分解する
+const totalMin = r[t.col] || 0;
+const h = Math.floor(totalMin / 60);
+const m = Math.round(totalMin % 60);
+
+// 表示用テキストを作成（0分なら表示しない、などのアレンジも可能）
+const timeStr = `${h}h ${m}m`;
+
+div.innerHTML += `<div style="font-size:13px; padding:8px; border-bottom:1px solid #eee; text-align:left;">
+    ${i+1}位: ${r.username || '匿名'}<br>
+    <b style="color:#0d6efd;">${timeStr}</b>
+</div>`;
                         ${i+1}位: ${r.username || '匿名'}<br>
                         <b style="color:#0d6efd;">${displayHours}h</b>
                     </div>`;
