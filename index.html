@@ -303,63 +303,7 @@ async function fetchNews() {
 }
 
 // 引数 (mins) に入れた分だけ加算されるようになります
-async function saveToSupabase(mins = 30) {
-    const { data: { user } } = await supabaseClient.auth.getUser(); 
-    if (!user) return;
-
-    const { data: record } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
-    const now = new Date();
-    const todayStr = now.toLocaleDateString('sv-SE');
-    const lastUpdate = record?.updated_at ? new Date(record.updated_at) : null;
-    const lastUpdateStr = lastUpdate ? lastUpdate.toLocaleDateString('sv-SE') : "";
-
-    const streakText = document.getElementById("streakDisplay").innerText;
-    const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
-    const multiplier = getBonusMultiplier(streakNum);
-    
-    const addedWithBonus = mins * multiplier;
-
-    // ★ 内部数値を更新（正確に加算し、誤差を防ぐために小数点第4位で管理）
-    totalHours = Number((totalHours + (addedWithBonus / 60)).toFixed(4));
-
-    let newDaily = (record?.daily_minutes || 0) + addedWithBonus;
-    let newWeekly = (record?.weekly_minutes || 0) + addedWithBonus;
-    let newMonthly = (record?.monthly_minutes || 0) + addedWithBonus;
-
-    if (lastUpdateStr !== todayStr) {
-        newDaily = addedWithBonus;
-        if (lastUpdate && lastUpdate.getMonth() !== now.getMonth()) {
-            newMonthly = addedWithBonus;
-        }
-        if (lastUpdate && (now - lastUpdate > 7 * 24 * 60 * 60 * 1000 || now.getDay() < lastUpdate.getDay())) {
-            newWeekly = addedWithBonus;
-        }
-    }
-
-    await supabaseClient.from("record").upsert({ 
-        user_id: user.id, 
-        // ★ 保存時は現在の totalHours（時間）から正確な「分」を計算して切り捨て
-        total_minutes: Math.floor(totalHours * 60),
-        daily_minutes: Math.round(newDaily),
-        weekly_minutes: Math.round(newWeekly),
-        monthly_minutes: Math.round(newMonthly),
-        updated_at: now.toISOString(),
-        username: document.getElementById("newNickname").value || record?.username || '匿名'
-    }, { onConflict: "user_id" });
-
-    const { data: currentLog } = await supabaseClient.from("daily_logs")
-        .select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
-    
-    await supabaseClient.from("daily_logs").upsert({ 
-        user_id: user.id, 
-        work_date: todayStr, 
-        minutes: (currentLog?.minutes || 0) + mins 
-    }, { onConflict: "user_id,work_date" });
-
-    updateDisplay();
-    updateRanking();
-    renderCalendar();
-}
+async function saveToSupabase
 async function updateRanking(){
     const { data: { user } } = await supabaseClient.auth.getUser();
 
