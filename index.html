@@ -303,7 +303,71 @@ async function fetchNews() {
 }
 
 // 引数 (mins) に入れた分だけ加算されるようになります
-async function saveToSupabase
+// 引数 (mins) に入れた分だけ加算されるようになります
+async function saveToSupabase(mins = 30) {
+    const { data: { user } } = await supabaseClient.auth.getUser(); 
+    if (!user) return;
+
+    // 現在のサーバーデータを取得
+    const { data: record } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('sv-SE');
+    const lastUpdate = record?.updated_at ? new Date(record.updated_at) : null;
+    const lastUpdateStr = lastUpdate ? lastUpdate.toLocaleDateString('sv-SE') : "";
+
+    const streakText = document.getElementById("streakDisplay").innerText;
+    const streakNum = parseInt(streakText.replace(/[^0-9]/g, "")) || 0;
+    const multiplier = getBonusMultiplier(streakNum);
+    const addedWithBonus = mins * multiplier;
+
+    // 内部累計を更新
+    totalHours = Number((totalHours + (addedWithBonus / 60)).toFixed(4));
+
+    let newDaily = (record?.daily_minutes || 0) + addedWithBonus;
+    let newWeekly = (record?.weekly_minutes || 0) + addedWithBonus;
+    let newMonthly = (record?.monthly_minutes || 0) + addedWithBonus;
+
+    // リセット判定
+    if (lastUpdateStr !== todayStr) {
+        newDaily = addedWithBonus;
+        if (lastUpdate && (lastUpdate.getMonth() !== now.getMonth() || lastUpdate.getFullYear() !== now.getFullYear())) {
+            newMonthly = addedWithBonus;
+        }
+        if (lastUpdate) {
+            const lastMonday = new Date(now);
+            const day = now.getDay();
+            const diff = (day === 0 ? 6 : day - 1); 
+            lastMonday.setDate(now.getDate() - diff);
+            lastMonday.setHours(0, 0, 0, 0);
+            if (lastUpdate < lastMonday) {
+                newWeekly = addedWithBonus;
+            }
+        }
+    }
+
+    await supabaseClient.from("record").upsert({ 
+        user_id: user.id, 
+        total_minutes: Math.floor(totalHours * 60),
+        daily_minutes: Math.round(newDaily),
+        weekly_minutes: Math.round(newWeekly),
+        monthly_minutes: Math.round(newMonthly),
+        updated_at: now.toISOString(),
+        username: document.getElementById("newNickname").value || record?.username || '匿名'
+    }, { onConflict: "user_id" });
+
+    const { data: currentLog } = await supabaseClient.from("daily_logs")
+        .select("minutes").eq("user_id", user.id).eq("work_date", todayStr).maybeSingle();
+    
+    await supabaseClient.from("daily_logs").upsert({ 
+        user_id: user.id, 
+        work_date: todayStr, 
+        minutes: (currentLog?.minutes || 0) + mins 
+    }, { onConflict: "user_id,work_date" });
+
+    updateDisplay();
+    updateRanking();
+    renderCalendar();
+}
 async function updateRanking(){
     const { data: { user } } = await supabaseClient.auth.getUser();
 
@@ -434,8 +498,12 @@ async function init() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     fetchNews(); 
     if (user) {
-        document.getElementById("currentUser").innerText = "ログイン中: " + (user.user_metadata?.nickname || user.email);
+        // ここを修正：recordテーブルから最新のusernameを持ってくる
         const { data } = await supabaseClient.from("record").select("*").eq("user_id", user.id).maybeSingle();
+        
+        // メールの代わりに登録した名前（username）を表示する
+        document.getElementById("currentUser").innerText = "ログイン中: " + (data?.username || user.email);
+        
         totalHours = (data?.total_minutes || 0) / 60; 
         renderCalendar(); 
         updateRanking();
