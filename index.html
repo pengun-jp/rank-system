@@ -387,10 +387,41 @@ async function renderCalendar() {
 }
 
 // --- アカウント系 ---
-async function signUp(){ const email=document.getElementById("email").value, password=document.getElementById("password").value; const { error } = await supabaseClient.auth.signUp({ email, password }); alert(error ? error.message : "登録成功！"); }
-async function signIn(){ const email = document.getElementById("email").value, password = document.getElementById("password").value; const { data: { user }, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if(error) alert(error.message); else init(); }
-async function signOut(){ await supabaseClient.auth.signOut(); location.reload(); }
-async function Nickname() { const name = document.getElementById("newNickname").value; if(!name) return; const { data: { user } } = await supabaseClient.auth.getUser(); await supabaseClient.from("record").upsert({ user_id: user.id, username: name }, { onConflict: "user_id" }); alert("名前を変更しました"); location.reload(); }
+// --- アカウント系 ---
+async function signUp(){ 
+    const email=document.getElementById("email").value, password=document.getElementById("password").value; 
+    const { error } = await supabaseClient.auth.signUp({ email, password }); 
+    alert(error ? error.message : "登録成功！"); 
+}
+
+async function signIn(){ 
+    const email = document.getElementById("email").value, password = document.getElementById("password").value; 
+    const { data: { user }, error } = await supabaseClient.auth.signInWithPassword({ email, password }); 
+    if(error) alert(error.message); else init(); 
+}
+
+async function signOut(){ 
+    await supabaseClient.auth.signOut(); 
+    location.reload(); 
+}
+
+async function Nickname() { 
+    const name = document.getElementById("newNickname").value; 
+    if(!name) return; 
+    const { data: { user } } = await supabaseClient.auth.getUser(); 
+    if(!user) return alert("ログインしてください");
+    
+    const { error } = await supabaseClient.from("record").upsert({ 
+        user_id: user.id, 
+        username: name 
+    }, { onConflict: "user_id" }); 
+    
+    if(error) alert("エラー: " + error.message);
+    else {
+        alert("名前を変更しました"); 
+        location.reload(); 
+    }
+}
 
 // --- その他 ---
 function getBonusMultiplier(s) { return s >= 14 ? 1.2 : s >= 7 ? 1.1 : s >= 3 ? 1.05 : 1.0; }
